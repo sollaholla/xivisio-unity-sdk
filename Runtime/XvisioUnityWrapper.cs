@@ -1,0 +1,280 @@
+﻿using System;
+using System.Collections.Concurrent;
+using System.Runtime.InteropServices;
+using UnityEditor;
+using UnityEngine;
+
+namespace Xvisio.Unity
+{
+    public enum MapSaveStatus
+    {
+        Error = -1,
+        NotLoaded = 0,
+        Progress = 1,
+        Saved = 2
+    }
+
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    public delegate void XvCslamSwitchedCallback(int mapQuality);
+
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    public delegate void XvSavedCallback(MapSaveStatus statusOfSavedMap, int mapQuality);
+
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    public delegate void XvLocalizedCallback(float mapVisibility);
+
+    /// <summary>
+    /// Sets the type of SLAM to be used.
+    /// </summary>
+    public enum XvisioSlamType
+    {
+        /// <summary>
+        /// SLAM using edge detection. Mapping is not supported with this type.
+        /// </summary>
+        Edge = 0,
+        /// <summary>
+        /// SLAM using a combination of edge detection and point cloud.
+        /// </summary>
+        Mixed = 1
+    }
+
+    public enum XvisioSlamMapEvent
+    {
+        MapSaved = 1,
+        MapSaveFailed = 2,
+        CSlamSwitched = 3,
+        Localized = 4
+    }
+
+    /// <summary>
+    /// Exposes the XVisio SLAM API for Unity.
+    /// </summary>
+    public class XvisioUnityWrapper
+    {
+        private const int StereoCameraWidth = 640;
+        private const int StereoCameraHeight = 480;
+        private const string NativePackage = "xv-unity-wrapper.dll";
+
+        private Texture2D _leftEyeStereoImage;
+        private byte[] _leftEyeImageBuffer;
+        private Texture2D _rightEyeStereoImage;
+        private byte[] _rightEyeImageBuffer;
+
+        /// <summary>
+        /// Indicates whether the SLAM map is currently loaded.
+        /// </summary>   
+        public bool IsMapLoaded { get; private set; }
+
+        /// <summary>
+        /// Invoked when a map is loaded successfully.
+        /// </summary>
+        public event XvCslamSwitchedCallback CslamSwitched;
+
+        /// <summary>
+        /// Invoked when a map is saved successfully.
+        /// </summary>
+        public event XvSavedCallback MapSavedStatusChanged;
+
+        /// <summary>
+        /// Invoked when the SLAM system is localized to a map.
+        /// </summary>
+        public event XvLocalizedCallback Localized;
+
+        /// <summary>
+        /// Invoked when the SLAM system is reset.
+        /// </summary>
+        public event Action SlamReset;
+
+        /// <summary>
+        /// Initializes the XVisio SLAM system.
+        /// </summary>
+        /// <returns>True if initialization was successful, otherwise false.</returns>
+        public bool Initialize() => xslam_init();
+
+        /// <summary>
+        /// Checks if the XVisio SLAM system is ready to use.
+        /// </summary>
+        /// <returns>True if the system is ready, otherwise false.</returns>
+        public bool TryUpdate()
+        {
+            if (!xslam_ready())
+                return false;
+            DequeueEvents();
+            return true;
+        }
+
+        public Texture2D GetLeftEyeStereoImage()
+        {
+            _leftEyeStereoImage ??= new Texture2D(StereoCameraWidth, StereoCameraHeight, TextureFormat.BGRA32, mipChain: false);
+            _leftEyeImageBuffer ??= new byte[StereoCameraWidth * StereoCameraHeight * 4];
+            var handle = GCHandle.Alloc(_leftEyeImageBuffer, GCHandleType.Pinned);
+            try
+            {
+                var ok = xslam_get_left_image(handle.AddrOfPinnedObject(), StereoCameraWidth, StereoCameraHeight, out _);
+                if (ok) { _leftEyeStereoImage.LoadRawTextureData(_leftEyeImageBuffer); _leftEyeStereoImage.Apply(false); }
+            }
+            finally { handle.Free(); }
+            return _leftEyeStereoImage;
+        }
+
+        public Texture2D GetRightEyeStereoImage()
+        {
+            _rightEyeStereoImage ??= new Texture2D(StereoCameraWidth, StereoCameraHeight, TextureFormat.BGRA32, mipChain: false);
+            _rightEyeImageBuffer = new byte[StereoCameraWidth * StereoCameraHeight * 4];
+            var handle = GCHandle.Alloc(_rightEyeImageBuffer, GCHandleType.Pinned);
+            try
+            {
+                var ok = xslam_get_right_image(handle.AddrOfPinnedObject(), StereoCameraWidth, StereoCameraHeight, out _);
+                if (ok) { _rightEyeStereoImage.LoadRawTextureData(_rightEyeImageBuffer); _rightEyeStereoImage.Apply(false); }
+            }
+            finally { handle.Free(); }
+            return _rightEyeStereoImage;
+        }
+
+        private void DequeueEvents()
+        {
+            while (xslam_dequeue(out var status))
+            {
+                switch (status)
+                {
+
+                    case XvisioSlamMapEvent.MapSaved:
+                    case XvisioSlamMapEvent.MapSaveFailed:
+                        MapSavedStatusChanged?.Invoke(xslam_get_most_recent_save_status(), xslam_get_current_map_quality());
+                        break;
+                    case XvisioSlamMapEvent.CSlamSwitched:
+                        CslamSwitched?.Invoke(xslam_get_current_map_quality());
+                        break;
+                    case XvisioSlamMapEvent.Localized:
+                        Localized?.Invoke(xslam_get_current_map_visibility());
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Uninitializes the XVisio SLAM system, releasing any resources it holds.
+        /// </summary>
+        /// <returns>True if uninitialization was successful, otherwise false.</returns>
+        public bool Uninitialize() => xslam_uninit();
+
+        /// <summary>
+        /// Sets the type of SLAM to be used.
+        /// </summary>
+        /// <param name="type">The type of SLAM to set.</param>
+        public void SetSlamType(XvisioSlamType type) => xslam_slam_type(type);
+
+        /// <summary>
+        /// Gets the current transform from the SLAM system.
+        /// </summary>
+        /// <param name="transform">The transform to apply the SLAM data to.</param>
+        /// <returns>True if the transform was successfully applied, otherwise false.</returns>
+        public bool TryApplyTransform(Transform transform)
+        {
+            if (!xslam_get_transform(out var mat, out _, out var status) || status != 0)
+                return false;
+            transform.localPosition = mat.GetColumn(3);
+            var rotation = Quaternion.LookRotation(mat.GetColumn(2), -mat.GetColumn(1)).eulerAngles;
+            rotation.x = -rotation.x;
+            rotation.z = -rotation.z;
+            transform.localRotation = Quaternion.Euler(rotation);
+            return true;
+        }
+
+        /// <summary>
+        /// Loads the map at the specified path and switches the current SLAM to C-SLAM.
+        /// </summary>
+        /// <param name="path">The path to the saved map.</param>
+        /// <returns>Whether the load operation has started.</returns>
+        public bool LoadMapAndSwitchToCslam(string path)
+        {
+            if (!xslam_ready())
+                return false;
+
+            if (!xslam_load_map_and_switch_to_cslam(path))
+                return false;
+
+            if (IsMapLoaded)
+                ResetSlam();
+
+            IsMapLoaded = true;
+            return true;
+        }
+
+        /// <summary>
+        /// Saves the map to the specified path and switches the current SLAM to C-SLAM.
+        /// </summary>
+        /// <param name="path"></param>
+        /// <returns></returns>
+        public bool SaveMapAndSwitchToCslam(string path)
+        {
+            if (!xslam_ready())
+                return false;
+            return !IsMapLoaded && xslam_save_map_and_switch_to_cslam(path);
+
+        }
+
+        public bool ResetSlam()
+        {
+            if (!xslam_reset_slam())
+                return false;
+            IsMapLoaded = false;
+            SlamReset?.Invoke();
+            return true;
+        }
+
+        public void Stop()
+        {
+            if (!xslam_uninit()) Debug.LogError("Failed to uninitialize Xvisio.");
+            IsMapLoaded = false;
+            if (_leftEyeStereoImage) UnityEngine.Object.Destroy(_leftEyeStereoImage);
+            if (_rightEyeStereoImage) UnityEngine.Object.Destroy(_rightEyeStereoImage);
+            _leftEyeImageBuffer = null;
+            _rightEyeImageBuffer = null;
+        }
+
+        [DllImport(NativePackage)]
+        private static extern bool xslam_init();
+
+        [DllImport(NativePackage)]
+        private static extern bool xslam_ready();
+
+        [DllImport(NativePackage)]
+        private static extern bool xslam_uninit();
+
+        [DllImport(NativePackage)]
+        private static extern bool xslam_reset_slam();
+
+        [DllImport(NativePackage)]
+        private static extern void xslam_slam_type(XvisioSlamType t);
+
+        [DllImport(NativePackage, CallingConvention = CallingConvention.Cdecl)]
+        private static extern bool xslam_get_transform(out Matrix4x4 m, out long tsUs, out int status);
+
+        [DllImport(NativePackage, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
+        private static extern bool xslam_load_map_and_switch_to_cslam(string path);
+
+        [DllImport(NativePackage, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
+        private static extern bool xslam_save_map_and_switch_to_cslam(string path);
+
+        [DllImport(NativePackage)]
+        private static extern bool xslam_dequeue(out XvisioSlamMapEvent outEvent);
+
+        [DllImport(NativePackage)]
+        private static extern int xslam_get_current_map_quality();
+
+        [DllImport(NativePackage)]
+        private static extern MapSaveStatus xslam_get_most_recent_save_status();
+
+        [DllImport(NativePackage)]
+        private static extern float xslam_get_current_map_visibility();
+
+        [DllImport(NativePackage)]
+        private static extern bool xslam_get_left_image(IntPtr data, int width, int height, out double timestamp);
+
+        [DllImport(NativePackage)]
+        private static extern bool xslam_get_right_image(IntPtr data, int width, int height, out double timestamp);
+    }
+}

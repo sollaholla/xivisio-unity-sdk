@@ -1,0 +1,9 @@
+{
+  "name": "com.xvisio-technology.xvsdk-unity",
+  "displayName": "Xvisio SeerSense\u00ae Unity SDK",
+  "version": "1.0.0-pre",
+  "description": "Adds support for Xvisio SLAM devices such as the the SeerSense DS80 and XR50. More information at https://xvisiotech.com .",
+  "documentationUrl": "https://www.xvisiotech.com/doc/",
+  "changelogUrl": "https://download.xvisiotech.com/sdk-download/last_version/Release%20note/release_note_xvsdk_latest.pdf",
+  "author": "Xvisio Technology Corporation"
+}

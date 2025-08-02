@@ -1,0 +1,20 @@
+{
+    "name": "XvisioUnity",
+    "rootNamespace": "Xvisio.Unity",
+    "references": [],
+    "includePlatforms": [
+        "Editor",
+        "WindowsStandalone64"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [
+        "UNITY_EDITOR_WIN",
+        "UNITY_STANDALONE_WIN"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

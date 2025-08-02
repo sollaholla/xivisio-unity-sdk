@@ -201,6 +201,8 @@ namespace Xvisio.Unity
         {
             mapGeneralEvents.onLocalized?.Invoke(pct);
         }
+#else
+        private void Start() { }
 #endif
         
         public void ManualUpdate()

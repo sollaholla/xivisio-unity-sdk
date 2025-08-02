@@ -1,5 +1,5 @@
 {
-    "name": "XvisioUnity",
+    "name": "XvisioUnity.Runtime",
     "rootNamespace": "Xvisio.Unity",
     "references": [],
     "includePlatforms": [

@@ -30,7 +30,7 @@ namespace Xvisio.Unity
         [SerializeField] private bool enableLogs;
         
         [Header("Mapping")]
-        [SerializeField] private string mapFileName = "xvmap.map";
+        [SerializeField] private string mapFileName = "map.bin";
         [SerializeField] private bool loadMapOnStart;
         [SerializeField] private MapSaveEvents mapSaveEvents = new();
         [SerializeField] private MapLoadEvents mapLoadEvents = new();

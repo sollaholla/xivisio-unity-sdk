@@ -181,6 +181,11 @@ namespace Xvisio.Unity
         private void OnSlamReset()
         {
             try { mapGeneralEvents.onReset?.Invoke(); } catch (Exception e) { Debug.LogException(e); }
+            if (IsTracking)
+            {
+                mapGeneralEvents.onTrackingLost?.Invoke();
+                IsTracking = false;
+            }
         }
 
         private void OnCslamSwitched(int mapQuality)

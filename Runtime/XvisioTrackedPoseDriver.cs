@@ -1,3 +1,7 @@
+#if UNITY_EDITOR_WIN || PLATFORM_STANDALONE_WIN
+#define XV_PLATFORM_SUPPORTED
+#endif
+
 using System;
 using System.Collections;
 using System.IO;
@@ -110,6 +114,8 @@ namespace Xvisio.Unity
         /// Invoked when the right eye image is rendered.
         /// </summary>
         public UnityEvent<Texture2D> OnRightEyeImage => onRightEyeImage;
+        
+#if XV_PLATFORM_SUPPORTED
 
         private IEnumerator Start()
         {
@@ -163,61 +169,6 @@ namespace Xvisio.Unity
             if (updateType is UpdateType.FixedUpdate)
                 ManualUpdate();
         }
-        
-        public void ManualUpdate()
-        {
-            if (!_api.TryUpdate()) 
-                return;
-
-            if (outputLeftEyeImage)
-            {
-                var t = _api.GetLeftEyeStereoImage();
-                if (t) onLeftEyeImage?.Invoke(t);
-            }
-
-            if (outputRightEyeImage)
-            {
-                var t = _api.GetRightEyeStereoImage();
-                if (t) onRightEyeImage?.Invoke(t);
-            }
-
-            _api.TryApplyTransform(!outputPose ? transform : outputPose);
-        }
-
-        /// <summary>
-        /// Resets the VSLAM device.
-        /// </summary>
-        public void ResetSlam()
-        {
-            _api.ResetSlam();
-        }
-
-        /// <summary>
-        /// Loads the SLAM map from the specified file.
-        /// </summary>
-        public void LoadMap()
-        {
-            var map = Path.Combine(Application.persistentDataPath, mapFileName);
-            if (!File.Exists(map) || new FileInfo(map).Length == 0)
-                return;
-            mapLoadEvents.onMapLoadStarted?.Invoke();
-            if (_api.LoadMapAndSwitchToCslam(map))
-                return;
-            mapLoadEvents.onMapLoadFinished?.Invoke();
-            mapLoadEvents.onMapLoadError?.Invoke();
-        }
-
-        /// <summary>
-        /// Saves the current SLAM map to the specified file.
-        /// </summary>
-        public void SaveMap()
-        {
-            mapSaveEvents.onMapSaveStarted?.Invoke();
-            if (_api.SaveMapAndSwitchToCslam(Path.Combine(Application.persistentDataPath, mapFileName)))
-                return;
-            mapSaveEvents.onMapSaveFinished?.Invoke();
-            mapSaveEvents.onMapSaveError?.Invoke();
-        }
 
         private void OnSlamReset()
         {
@@ -249,6 +200,70 @@ namespace Xvisio.Unity
         private void OnLocalized(float pct)
         {
             mapGeneralEvents.onLocalized?.Invoke(pct);
+        }
+#endif
+        
+        public void ManualUpdate()
+        {
+#if XV_PLATFORM_SUPPORTED
+            if (!_api.TryUpdate()) 
+                return;
+
+            if (outputLeftEyeImage)
+            {
+                var t = _api.GetLeftEyeStereoImage();
+                if (t) onLeftEyeImage?.Invoke(t);
+            }
+
+            if (outputRightEyeImage)
+            {
+                var t = _api.GetRightEyeStereoImage();
+                if (t) onRightEyeImage?.Invoke(t);
+            }
+
+            _api.TryApplyTransform(!outputPose ? transform : outputPose);
+#endif
+        }
+
+        /// <summary>
+        /// Resets the VSLAM device.
+        /// </summary>
+        public void ResetSlam()
+        {
+#if XV_PLATFORM_SUPPORTED
+            _api.ResetSlam();
+#endif
+        }
+
+        /// <summary>
+        /// Loads the SLAM map from the specified file.
+        /// </summary>
+        public void LoadMap()
+        {
+#if XV_PLATFORM_SUPPORTED
+            var map = Path.Combine(Application.persistentDataPath, mapFileName);
+            if (!File.Exists(map) || new FileInfo(map).Length == 0)
+                return;
+            mapLoadEvents.onMapLoadStarted?.Invoke();
+            if (_api.LoadMapAndSwitchToCslam(map))
+                return;
+            mapLoadEvents.onMapLoadFinished?.Invoke();
+            mapLoadEvents.onMapLoadError?.Invoke();
+#endif
+        }
+
+        /// <summary>
+        /// Saves the current SLAM map to the specified file.
+        /// </summary>
+        public void SaveMap()
+        {
+#if XV_PLATFORM_SUPPORTED
+            mapSaveEvents.onMapSaveStarted?.Invoke();
+            if (_api.SaveMapAndSwitchToCslam(Path.Combine(Application.persistentDataPath, mapFileName)))
+                return;
+            mapSaveEvents.onMapSaveFinished?.Invoke();
+            mapSaveEvents.onMapSaveError?.Invoke();
+#endif
         }
     }
 }

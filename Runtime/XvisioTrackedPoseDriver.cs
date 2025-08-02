@@ -31,7 +31,7 @@ namespace Xvisio.Unity
         
         [Header("Mapping")]
         [SerializeField] private string mapFileName = "map.bin";
-        [SerializeField] private bool loadMapOnStart;
+        [SerializeField] private bool loadAutomatically;
         [SerializeField] private MapSaveEvents mapSaveEvents = new();
         [SerializeField] private MapLoadEvents mapLoadEvents = new();
         [SerializeField] private MapGeneralEvents mapGeneralEvents = new();
@@ -68,7 +68,7 @@ namespace Xvisio.Unity
         }
         
         private readonly XvisioUnityWrapper _api = new();
-        
+
         /// <summary>
         /// Indicates whether the SLAM map is currently loaded.
         /// </summary>
@@ -87,6 +87,8 @@ namespace Xvisio.Unity
                     return;
                 _api.ResetSlam();
                 mapFileName = value;
+                if (loadAutomatically)
+                    LoadMap();
             }
         }
 
@@ -124,11 +126,13 @@ namespace Xvisio.Unity
 
             if (!IsMapLoaded)
             {
-                if (loadMapOnStart)
+                if (loadAutomatically)
                     LoadMap();
             }
             else
-                mapLoadEvents.onMapLoaded?.Invoke();
+            {
+                try { mapLoadEvents.onMapLoaded?.Invoke(); } catch (Exception e) { Debug.LogException(e); }
+            }
         }
 
         private void OnEnable()
@@ -172,13 +176,16 @@ namespace Xvisio.Unity
 
         private void OnSlamReset()
         {
-            mapGeneralEvents.onReset?.Invoke();
+            try { mapGeneralEvents.onReset?.Invoke(); } catch (Exception e) { Debug.LogException(e); }
         }
 
-        private void OnCslamSwitched(int status)
+        private void OnCslamSwitched(int mapQuality)
         {
-            mapLoadEvents.onMapLoaded?.Invoke();
-            mapLoadEvents.onMapLoadFinished?.Invoke();
+            try { mapLoadEvents.onMapLoaded?.Invoke(); }
+            catch (Exception e) { Debug.LogException(e); }
+            try { mapLoadEvents.onMapLoadFinished?.Invoke(); }
+            catch (Exception e) { Debug.LogException(e); }
+
         }
 
         private void OnMapSavedStatusChanged(MapSaveStatus status, int quality)
@@ -186,25 +193,29 @@ namespace Xvisio.Unity
             switch (status)
             {
                 case MapSaveStatus.Saved:
-                    mapSaveEvents.onMapSaved?.Invoke();
+                    try { mapSaveEvents.onMapSaved?.Invoke(); } catch (Exception e) { Debug.LogException(e); }
                     break;
                 case MapSaveStatus.Error:
-                    mapSaveEvents.onMapSaveError?.Invoke();
+                    try { mapSaveEvents.onMapSaveError?.Invoke(); } catch (Exception e) { Debug.LogException(e); }
                     break;
                 default:
                     return;
             }
-            mapSaveEvents.onMapSaveFinished?.Invoke();
+            
+            try { mapSaveEvents.onMapSaveFinished?.Invoke(); } catch (Exception e) { Debug.LogException(e); }
         }
 
         private void OnLocalized(float pct)
         {
-            mapGeneralEvents.onLocalized?.Invoke(pct);
+            try { mapGeneralEvents.onLocalized?.Invoke(pct); } catch (Exception e) { Debug.LogException(e); }
         }
 #else
         private void Start() { }
 #endif
         
+        /// <summary>
+        /// Call this if the <see cref="UpdateType"/> is set to Manual.
+        /// </summary>
         public void ManualUpdate()
         {
 #if XV_PLATFORM_SUPPORTED
@@ -214,13 +225,13 @@ namespace Xvisio.Unity
             if (outputLeftEyeImage)
             {
                 var t = _api.GetLeftEyeStereoImage();
-                if (t) onLeftEyeImage?.Invoke(t);
+                if (t) try { onLeftEyeImage?.Invoke(t); } catch (Exception e) { Debug.LogException(e); }
             }
 
             if (outputRightEyeImage)
             {
                 var t = _api.GetRightEyeStereoImage();
-                if (t) onRightEyeImage?.Invoke(t);
+                if (t) try { onRightEyeImage?.Invoke(t); } catch (Exception e) { Debug.LogException(e); }
             }
 
             _api.TryApplyTransform(!outputPose ? transform : outputPose);
@@ -228,9 +239,9 @@ namespace Xvisio.Unity
         }
 
         /// <summary>
-        /// Resets the VSLAM device.
+        /// Resets the VSLAM device to begin a new map.
         /// </summary>
-        public void ResetSlam()
+        public void CreateMap()
         {
 #if XV_PLATFORM_SUPPORTED
             _api.ResetSlam();
@@ -243,14 +254,16 @@ namespace Xvisio.Unity
         public void LoadMap()
         {
 #if XV_PLATFORM_SUPPORTED
-            var map = Path.Combine(Application.persistentDataPath, mapFileName);
+            if (string.IsNullOrEmpty(mapFileName))
+                return;
+            var map = GetMapPath();
             if (!File.Exists(map) || new FileInfo(map).Length == 0)
                 return;
-            mapLoadEvents.onMapLoadStarted?.Invoke();
+            try { mapLoadEvents.onMapLoadStarted?.Invoke(); } catch (Exception e) { Debug.LogException(e); }
             if (_api.LoadMapAndSwitchToCslam(map))
                 return;
-            mapLoadEvents.onMapLoadFinished?.Invoke();
-            mapLoadEvents.onMapLoadError?.Invoke();
+            try { mapLoadEvents.onMapLoadFinished?.Invoke(); } catch (Exception e) { Debug.LogException(e); }
+            try { mapLoadEvents.onMapLoadError?.Invoke(); } catch (Exception e) { Debug.LogException(e); }
 #endif
         }
 
@@ -260,12 +273,20 @@ namespace Xvisio.Unity
         public void SaveMap()
         {
 #if XV_PLATFORM_SUPPORTED
-            mapSaveEvents.onMapSaveStarted?.Invoke();
-            if (_api.SaveMapAndSwitchToCslam(Path.Combine(Application.persistentDataPath, mapFileName)))
+            try { mapSaveEvents.onMapSaveStarted?.Invoke(); } catch (Exception e) { Debug.LogException(e); }
+            var path = GetMapPath();
+            if (File.Exists(path))
+                File.Delete(path);
+            if (_api.SaveMapAndSwitchToCslam(path))
                 return;
-            mapSaveEvents.onMapSaveFinished?.Invoke();
-            mapSaveEvents.onMapSaveError?.Invoke();
+            try { mapSaveEvents.onMapSaveFinished?.Invoke(); } catch (Exception e) { Debug.LogException(e); }
+            try { mapSaveEvents.onMapSaveError?.Invoke(); } catch (Exception e) { Debug.LogException(e); }
 #endif
+        }
+
+        private string GetMapPath()
+        {
+            return Path.Combine(Application.persistentDataPath, mapFileName);
         }
     }
 }

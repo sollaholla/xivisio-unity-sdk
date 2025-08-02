@@ -51,8 +51,6 @@ namespace Xvisio.Unity
     /// </summary>
     public class XvisioUnityWrapper
     {
-        private const int StereoCameraWidth = 640;
-        private const int StereoCameraHeight = 480;
         private const string NativePackage = "xv-unity-wrapper.dll";
 
         private Texture2D _leftEyeStereoImage;
@@ -105,12 +103,17 @@ namespace Xvisio.Unity
 
         public Texture2D GetLeftEyeStereoImage()
         {
-            _leftEyeStereoImage ??= new Texture2D(StereoCameraWidth, StereoCameraHeight, TextureFormat.BGRA32, mipChain: false);
-            _leftEyeImageBuffer ??= new byte[StereoCameraWidth * StereoCameraHeight * 4];
+            var width = xslam_get_stereo_width();
+            var height = xslam_get_stereo_height();
+            if (width <= 1 || height <= 1)
+                return Texture2D.blackTexture;
+
+            _leftEyeStereoImage ??= new Texture2D(width, height, TextureFormat.BGRA32, mipChain: false);
+            _leftEyeImageBuffer ??= new byte[width * height * 4];
             var handle = GCHandle.Alloc(_leftEyeImageBuffer, GCHandleType.Pinned);
             try
             {
-                var ok = xslam_get_left_image(handle.AddrOfPinnedObject(), StereoCameraWidth, StereoCameraHeight, out _);
+                var ok = xslam_get_left_image(handle.AddrOfPinnedObject(), width, height, out _);
                 if (ok) { _leftEyeStereoImage.LoadRawTextureData(_leftEyeImageBuffer); _leftEyeStereoImage.Apply(false); }
             }
             finally { handle.Free(); }
@@ -119,12 +122,17 @@ namespace Xvisio.Unity
 
         public Texture2D GetRightEyeStereoImage()
         {
-            _rightEyeStereoImage ??= new Texture2D(StereoCameraWidth, StereoCameraHeight, TextureFormat.BGRA32, mipChain: false);
-            _rightEyeImageBuffer = new byte[StereoCameraWidth * StereoCameraHeight * 4];
+            var width = xslam_get_stereo_width();
+            var height = xslam_get_stereo_height();
+            if (width <= 1 || height <= 1)
+                return Texture2D.blackTexture;
+            
+            _rightEyeStereoImage ??= new Texture2D(width, height, TextureFormat.BGRA32, mipChain: false);
+            _rightEyeImageBuffer = new byte[width * height * 4];
             var handle = GCHandle.Alloc(_rightEyeImageBuffer, GCHandleType.Pinned);
             try
             {
-                var ok = xslam_get_right_image(handle.AddrOfPinnedObject(), StereoCameraWidth, StereoCameraHeight, out _);
+                var ok = xslam_get_right_image(handle.AddrOfPinnedObject(), width, height, out _);
                 if (ok) { _rightEyeStereoImage.LoadRawTextureData(_rightEyeImageBuffer); _rightEyeStereoImage.Apply(false); }
             }
             finally { handle.Free(); }
@@ -140,7 +148,9 @@ namespace Xvisio.Unity
 
                     case XvisioSlamMapEvent.MapSaved:
                     case XvisioSlamMapEvent.MapSaveFailed:
-                        MapSavedStatusChanged?.Invoke(xslam_get_most_recent_save_status(), xslam_get_current_map_quality());
+                        MapSavedStatusChanged?.Invoke(
+                            xslam_get_most_recent_save_status(), 
+                            xslam_get_current_map_quality());
                         break;
                     case XvisioSlamMapEvent.CSlamSwitched:
                         CslamSwitched?.Invoke(xslam_get_current_map_quality());
@@ -210,9 +220,7 @@ namespace Xvisio.Unity
         /// <returns></returns>
         public bool SaveMapAndSwitchToCslam(string path)
         {
-            if (!xslam_ready())
-                return false;
-            return !IsMapLoaded && xslam_save_map_and_switch_to_cslam(path);
+            return xslam_ready() && xslam_save_map_and_switch_to_cslam(path);
 
         }
 
@@ -276,5 +284,11 @@ namespace Xvisio.Unity
 
         [DllImport(NativePackage)]
         private static extern bool xslam_get_right_image(IntPtr data, int width, int height, out double timestamp);
+
+        [DllImport(NativePackage)]
+        private static extern int xslam_get_stereo_width();
+        
+        [DllImport(NativePackage)]
+        private static extern int xslam_get_stereo_height();
     }
 }

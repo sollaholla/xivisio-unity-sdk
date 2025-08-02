@@ -64,6 +64,8 @@ namespace Xvisio.Unity
         public class MapGeneralEvents
         {
             public UnityEvent onReset = new();
+            public UnityEvent onTracking = new();
+            public UnityEvent onTrackingLost = new();
             public UnityEvent<float> onLocalized = new();
         }
         
@@ -73,6 +75,8 @@ namespace Xvisio.Unity
         /// Indicates whether the SLAM map is currently loaded.
         /// </summary>
         public bool IsMapLoaded => _api.IsMapLoaded;
+        
+        public bool IsTracking { get; private set; }
 
         /// <summary>
         /// Gets or sets the current map file name. If the map file name changes, this will forcefully
@@ -234,7 +238,19 @@ namespace Xvisio.Unity
                 if (t) try { onRightEyeImage?.Invoke(t); } catch (Exception e) { Debug.LogException(e); }
             }
 
-            _api.TryApplyTransform(!outputPose ? transform : outputPose);
+            if (_api.TryApplyTransform(!outputPose ? transform : outputPose))
+            {
+                if (!IsTracking)
+                {
+                    mapGeneralEvents.onTracking?.Invoke();
+                    IsTracking = true;
+                }
+            }
+            else if (IsTracking)
+            {
+                mapGeneralEvents.onTrackingLost?.Invoke();
+                IsTracking = false;
+            }
 #endif
         }
 

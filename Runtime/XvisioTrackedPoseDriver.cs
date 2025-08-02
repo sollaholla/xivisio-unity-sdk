@@ -254,9 +254,9 @@ namespace Xvisio.Unity
         public void LoadMap()
         {
 #if XV_PLATFORM_SUPPORTED
-            if (string.IsNullOrEmpty(mapFileName))
-                return;
             var map = GetMapPath();
+            if (string.IsNullOrEmpty(map))
+                return;
             if (!File.Exists(map) || new FileInfo(map).Length == 0)
                 return;
             try { mapLoadEvents.onMapLoadStarted?.Invoke(); } catch (Exception e) { Debug.LogException(e); }
@@ -275,8 +275,13 @@ namespace Xvisio.Unity
 #if XV_PLATFORM_SUPPORTED
             try { mapSaveEvents.onMapSaveStarted?.Invoke(); } catch (Exception e) { Debug.LogException(e); }
             var path = GetMapPath();
+            if (string.IsNullOrEmpty(path) || !path.EndsWith(".bin"))
+                return;
             if (File.Exists(path))
                 File.Delete(path);
+            var directoryName = Path.GetDirectoryName(path);
+            if (!string.IsNullOrEmpty(directoryName) && !Directory.Exists(directoryName))
+                Directory.CreateDirectory(directoryName!);
             if (_api.SaveMapAndSwitchToCslam(path))
                 return;
             try { mapSaveEvents.onMapSaveFinished?.Invoke(); } catch (Exception e) { Debug.LogException(e); }
@@ -286,7 +291,9 @@ namespace Xvisio.Unity
 
         private string GetMapPath()
         {
-            return Path.Combine(Application.persistentDataPath, mapFileName);
+            return string.IsNullOrWhiteSpace(mapFileName) 
+                ? string.Empty 
+                : Path.Combine(Application.persistentDataPath, mapFileName.Trim());
         }
     }
 }

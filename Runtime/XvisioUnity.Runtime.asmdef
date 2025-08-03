@@ -2,10 +2,7 @@
     "name": "XvisioUnity.Runtime",
     "rootNamespace": "Xvisio.Unity",
     "references": [],
-    "includePlatforms": [
-        "Editor",
-        "WindowsStandalone64"
-    ],
+    "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
     "overrideReferences": false,

@@ -191,6 +191,17 @@ namespace Xvisio.Unity
                     case XvisioSlamMapEvent.Localized:
                         Localized?.Invoke(xslam_get_current_map_visibility());
                         break;
+                    case XvisioSlamMapEvent.StereoPlanesUpdated:
+                        const int cap = 1 * 1024 * 1024;
+                        var buf = new byte[cap];
+                        var len = cap;
+                        if (xslam_get_plane_from_stereo(buf, ref len) && len > 0)
+                        {
+                            var planes = XvisioPlaneSerializer.Deserialize(new ReadOnlySpan<byte>(buf, 0, len));
+                        }
+                        break;
+                    case XvisioSlamMapEvent.ToFPlanesUpdated:
+                        break;
                     default:
                         throw new ArgumentOutOfRangeException();
                 }
@@ -280,55 +291,58 @@ namespace Xvisio.Unity
             _rightEyeImageBuffer = null;
         }
 
-        [DllImport(NativePackage)]
+        [DllImport(NativePackage, CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         private static extern bool xslam_init();
 
-        [DllImport(NativePackage)]
+        [DllImport(NativePackage, CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         private static extern bool xslam_ready();
 
-        [DllImport(NativePackage)]
+        [DllImport(NativePackage, CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         private static extern bool xslam_uninit();
 
-        [DllImport(NativePackage)]
+        [DllImport(NativePackage, CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         private static extern bool xslam_reset_slam();
 
-        [DllImport(NativePackage)]
+        [DllImport(NativePackage, CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         private static extern void xslam_slam_type(XvisioSlamType t);
 
-        [DllImport(NativePackage, CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(NativePackage, CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         private static extern bool xslam_get_transform(out Matrix4x4 m, out long tsUs, out int status);
 
-        [DllImport(NativePackage, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
+        [DllImport(NativePackage, CallingConvention = CallingConvention.Cdecl, ExactSpelling = true, CharSet = CharSet.Ansi)]
         private static extern bool xslam_load_map_and_switch_to_cslam(string path);
 
-        [DllImport(NativePackage, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
+        [DllImport(NativePackage, CallingConvention = CallingConvention.Cdecl, ExactSpelling = true, CharSet = CharSet.Ansi)]
         private static extern bool xslam_save_map_and_switch_to_cslam(string path);
 
-        [DllImport(NativePackage)]
+        [DllImport(NativePackage, CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         private static extern bool xslam_dequeue(out XvisioSlamMapEvent outEvent);
 
-        [DllImport(NativePackage)]
+        [DllImport(NativePackage, CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         private static extern int xslam_get_current_map_quality();
 
-        [DllImport(NativePackage)]
+        [DllImport(NativePackage, CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         private static extern MapSaveStatus xslam_get_most_recent_save_status();
 
-        [DllImport(NativePackage)]
+        [DllImport(NativePackage, CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         private static extern float xslam_get_current_map_visibility();
 
-        [DllImport(NativePackage)]
+        [DllImport(NativePackage, CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         private static extern bool xslam_get_left_image(IntPtr data, int width, int height, int flip, out double timestamp);
 
-        [DllImport(NativePackage)]
+        [DllImport(NativePackage, CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         private static extern bool xslam_get_right_image(IntPtr data, int width, int height, int flip, out double timestamp);
 
-        [DllImport(NativePackage)]
+        [DllImport(NativePackage, CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         private static extern int xslam_get_stereo_width();
         
-        [DllImport(NativePackage)]
+        [DllImport(NativePackage, CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         private static extern int xslam_get_stereo_height();
         
-        [DllImport(NativePackage)]
+        [DllImport(NativePackage, CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         private static extern bool xslam_start_slam();
+        
+        [DllImport(NativePackage, CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        private static extern bool xslam_get_plane_from_stereo(byte[] data, ref int len);
     }
 }

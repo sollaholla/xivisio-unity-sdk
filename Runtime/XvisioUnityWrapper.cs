@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.InteropServices;
 using UnityEngine;
 
@@ -70,6 +72,12 @@ namespace Xvisio.Unity
         private int? _leftEyeHeight;
         private int? _rightEyeWidth;
         private int? _rightEyeHeight;
+
+        private byte[] _stereoPlaneBuffer;
+        private List<XvPlane> _stereoPlanes;
+        private int _stereoPlaneCount;
+
+        private Dictionary<string, GameObject> _planes;
 
         /// <summary>
         /// Indicates whether the SLAM map is currently loaded.
@@ -192,13 +200,6 @@ namespace Xvisio.Unity
                         Localized?.Invoke(xslam_get_current_map_visibility());
                         break;
                     case XvisioSlamMapEvent.StereoPlanesUpdated:
-                        const int cap = 1 * 1024 * 1024;
-                        var buf = new byte[cap];
-                        var len = cap;
-                        if (xslam_get_plane_from_stereo(buf, ref len) && len > 0)
-                        {
-                            var planes = XvisioPlaneSerializer.Deserialize(new ReadOnlySpan<byte>(buf, 0, len));
-                        }
                         break;
                     case XvisioSlamMapEvent.ToFPlanesUpdated:
                         break;

@@ -133,6 +133,16 @@ namespace Xvisio.Unity
         /// Invoked when the right eye image is rendered.
         /// </summary>
         public UnityEvent<Texture2D> OnRightEyeImage => onRightEyeImage;
+
+        /// <summary>
+        /// Gets the most recent left eye image.
+        /// </summary>
+        public Texture2D LeftEyeImage { get; private set; }
+        
+        /// <summary>
+        /// Gets the most recent right eye image.
+        /// </summary>
+        public Texture2D RightEyeImage { get; private set; }
         
 #if XV_PLATFORM_SUPPORTED
 
@@ -251,14 +261,14 @@ namespace Xvisio.Unity
 
             if (outputLeftEyeImage)
             {
-                var t = API.GetLeftEyeStereoImage(leftEyeImageTransform);
-                if (t) try { onLeftEyeImage?.Invoke(t); } catch (Exception e) { Debug.LogException(e); }
+                LeftEyeImage = API.GetLeftEyeStereoImage(leftEyeImageTransform);
+                if (LeftEyeImage) try { onLeftEyeImage?.Invoke(LeftEyeImage); } catch (Exception e) { Debug.LogException(e); }
             }
 
             if (outputRightEyeImage)
             {
-                var t = API.GetRightEyeStereoImage(rightEyeImageTransform);
-                if (t) try { onRightEyeImage?.Invoke(t); } catch (Exception e) { Debug.LogException(e); }
+                RightEyeImage = API.GetRightEyeStereoImage(rightEyeImageTransform);
+                if (RightEyeImage) try { onRightEyeImage?.Invoke(RightEyeImage); } catch (Exception e) { Debug.LogException(e); }
             }
 
             if (API.TryApplyTransform(!outputPose ? transform : outputPose))

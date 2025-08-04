@@ -70,13 +70,11 @@ namespace Xvisio.Unity
             public UnityEvent onTrackingLost = new();
             public UnityEvent<float> onLocalized = new();
         }
-        
-        private readonly XvisioUnityWrapper _api = new();
 
         /// <summary>
         /// Indicates whether the SLAM map is currently loaded.
         /// </summary>
-        public bool IsMapLoaded => _api.IsMapLoaded;
+        public bool IsMapLoaded => API.IsMapLoaded;
         
         /// <summary>
         /// Gets a value indicating whether the <see cref="XvisioTrackedPoseDriver"/> is tracking.
@@ -99,12 +97,17 @@ namespace Xvisio.Unity
             {
                 if (mapFileName == value)
                     return;
-                _api.ResetSlam();
+                API.ResetSlam();
                 mapFileName = value;
                 if (loadAutomatically)
                     LoadMap();
             }
         }
+
+        /// <summary>
+        /// Gets the current <see cref="XvisioUnityWrapper"/> to access the API.
+        /// </summary>
+        public XvisioUnityWrapper API { get; } = new();
 
         /// <summary>
         /// General events for mapping.
@@ -135,7 +138,7 @@ namespace Xvisio.Unity
 
         private IEnumerator Start()
         {
-            while (!_api.Initialize())
+            while (!API.Initialize())
                 yield return new WaitForSeconds(1f);
 
             if (!IsMapLoaded)
@@ -151,20 +154,20 @@ namespace Xvisio.Unity
 
         private void OnEnable()
         {
-            _api.Localized += OnLocalized;
-            _api.CslamSwitched += OnCslamSwitched;
-            _api.MapSavedStatusChanged += OnMapSavedStatusChanged;
-            _api.SlamReset += OnSlamReset;
+            API.Localized += OnLocalized;
+            API.CslamSwitched += OnCslamSwitched;
+            API.MapSavedStatusChanged += OnMapSavedStatusChanged;
+            API.SlamReset += OnSlamReset;
 
             Current = this;
         }
 
         private void OnDisable()
         {
-            _api.Localized -= OnLocalized;
-            _api.CslamSwitched -= OnCslamSwitched;
-            _api.MapSavedStatusChanged -= OnMapSavedStatusChanged;
-            _api.SlamReset -= OnSlamReset;
+            API.Localized -= OnLocalized;
+            API.CslamSwitched -= OnCslamSwitched;
+            API.MapSavedStatusChanged -= OnMapSavedStatusChanged;
+            API.SlamReset -= OnSlamReset;
 
             if (Current == this)
                 Current = null;
@@ -172,7 +175,7 @@ namespace Xvisio.Unity
 
         private void OnDestroy()
         {
-            _api.Stop();
+            API.Stop();
         }
         
         private void Update()
@@ -243,22 +246,22 @@ namespace Xvisio.Unity
         public void ManualUpdate()
         {
 #if XV_PLATFORM_SUPPORTED
-            if (!_api.TryUpdate()) 
+            if (!API.TryUpdate()) 
                 return;
 
             if (outputLeftEyeImage)
             {
-                var t = _api.GetLeftEyeStereoImage(leftEyeImageTransform);
+                var t = API.GetLeftEyeStereoImage(leftEyeImageTransform);
                 if (t) try { onLeftEyeImage?.Invoke(t); } catch (Exception e) { Debug.LogException(e); }
             }
 
             if (outputRightEyeImage)
             {
-                var t = _api.GetRightEyeStereoImage(rightEyeImageTransform);
+                var t = API.GetRightEyeStereoImage(rightEyeImageTransform);
                 if (t) try { onRightEyeImage?.Invoke(t); } catch (Exception e) { Debug.LogException(e); }
             }
 
-            if (_api.TryApplyTransform(!outputPose ? transform : outputPose))
+            if (API.TryApplyTransform(!outputPose ? transform : outputPose))
             {
                 if (!IsTracking)
                 {
@@ -280,7 +283,7 @@ namespace Xvisio.Unity
         public void ResetSlam()
         {
 #if XV_PLATFORM_SUPPORTED
-            _api.ResetSlam();
+            API.ResetSlam();
 #endif
         }
 
@@ -289,7 +292,7 @@ namespace Xvisio.Unity
         /// </summary>
         public void StartSlam()
         {
-            _api.StartSlam();
+            API.StartSlam();
         }
 
         /// <summary>
@@ -304,7 +307,7 @@ namespace Xvisio.Unity
             if (!File.Exists(map) || new FileInfo(map).Length == 0)
                 return;
             try { mapLoadEvents.onMapLoadStarted?.Invoke(); } catch (Exception e) { Debug.LogException(e); }
-            if (_api.LoadMapAndSwitchToCslam(map))
+            if (API.LoadMapAndSwitchToCslam(map))
                 return;
             try { mapLoadEvents.onMapLoadFinished?.Invoke(); } catch (Exception e) { Debug.LogException(e); }
             try { mapLoadEvents.onMapLoadError?.Invoke(); } catch (Exception e) { Debug.LogException(e); }
@@ -326,7 +329,7 @@ namespace Xvisio.Unity
             var directoryName = Path.GetDirectoryName(path);
             if (!string.IsNullOrEmpty(directoryName) && !Directory.Exists(directoryName))
                 Directory.CreateDirectory(directoryName!);
-            if (_api.SaveMapAndSwitchToCslam(path))
+            if (API.SaveMapAndSwitchToCslam(path))
                 return;
             try { mapSaveEvents.onMapSaveFinished?.Invoke(); } catch (Exception e) { Debug.LogException(e); }
             try { mapSaveEvents.onMapSaveError?.Invoke(); } catch (Exception e) { Debug.LogException(e); }

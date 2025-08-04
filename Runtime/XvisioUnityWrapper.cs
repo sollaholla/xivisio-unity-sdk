@@ -66,6 +66,11 @@ namespace Xvisio.Unity
         private Texture2D _rightEyeStereoImage;
         private byte[] _rightEyeImageBuffer;
 
+        private int? _leftEyeWidth;
+        private int? _leftEyeHeight;
+        private int? _rightEyeWidth;
+        private int? _rightEyeHeight;
+
         /// <summary>
         /// Indicates whether the SLAM map is currently loaded.
         /// </summary>   
@@ -119,12 +124,14 @@ namespace Xvisio.Unity
 
         public Texture2D GetLeftEyeStereoImage(XvisioImageTransform flip = XvisioImageTransform.InvertVertical)
         {
-            var width = xslam_get_stereo_width();
-            var height = xslam_get_stereo_height();
+            var width = _leftEyeWidth ??= xslam_get_stereo_width();
+            var height = _leftEyeHeight ??= xslam_get_stereo_height();
             if (width <= 1 || height <= 1)
             {
                 if (_leftEyeStereoImage) UnityEngine.Object.Destroy(_rightEyeStereoImage);
                 _leftEyeImageBuffer = null;
+                _leftEyeWidth = null;
+                _rightEyeWidth = null;
                 return Texture2D.blackTexture;
             }
 
@@ -142,12 +149,14 @@ namespace Xvisio.Unity
 
         public Texture2D GetRightEyeStereoImage(XvisioImageTransform flip = XvisioImageTransform.InvertVertical)
         {
-            var width = xslam_get_stereo_width();
-            var height = xslam_get_stereo_height();
+            var width = _rightEyeWidth ??= xslam_get_stereo_width();
+            var height = _rightEyeHeight ??= xslam_get_stereo_height();
             if (width <= 1 || height <= 1)
             {
                 if (_rightEyeStereoImage) UnityEngine.Object.Destroy(_rightEyeStereoImage);
                 _rightEyeImageBuffer = null;
+                _rightEyeWidth = null;
+                _rightEyeHeight = null;
                 return Texture2D.blackTexture;
             }
             

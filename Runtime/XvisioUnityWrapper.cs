@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Collections.Concurrent;
 using System.Runtime.InteropServices;
-using UnityEditor;
 using UnityEngine;
 
 namespace Xvisio.Unity

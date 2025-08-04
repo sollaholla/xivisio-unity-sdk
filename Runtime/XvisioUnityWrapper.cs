@@ -43,7 +43,9 @@ namespace Xvisio.Unity
         MapSaved = 1,
         MapSaveFailed = 2,
         CSlamSwitched = 3,
-        Localized = 4
+        Localized = 4, 
+        StereoPlanesUpdated = 5, 
+        ToFPlanesUpdated = 6
     }
 
     public enum XvisioImageTransform

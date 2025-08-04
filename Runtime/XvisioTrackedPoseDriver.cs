@@ -1,4 +1,4 @@
-#if UNITY_EDITOR_WIN || PLATFORM_STANDALONE_WIN
+#if UNITY_EDITOR_WIN || UNITY_STANDALONE_WIN
 #define XV_PLATFORM_SUPPORTED
 #endif
 
@@ -38,8 +38,10 @@ namespace Xvisio.Unity
 
         [Header("Camera")]
         [SerializeField] private bool outputLeftEyeImage;
+        [SerializeField] private XvisioImageTransform leftEyeImageTransform = XvisioImageTransform.InvertVertical;
         [SerializeField] private UnityEvent<Texture2D> onLeftEyeImage = new();
         [SerializeField] private bool outputRightEyeImage;
+        [SerializeField] private XvisioImageTransform rightEyeImageTransform = XvisioImageTransform.InvertVertical;
         [SerializeField] private UnityEvent<Texture2D> onRightEyeImage = new();
 
         [Serializable]
@@ -233,13 +235,13 @@ namespace Xvisio.Unity
 
             if (outputLeftEyeImage)
             {
-                var t = _api.GetLeftEyeStereoImage();
+                var t = _api.GetLeftEyeStereoImage(leftEyeImageTransform);
                 if (t) try { onLeftEyeImage?.Invoke(t); } catch (Exception e) { Debug.LogException(e); }
             }
 
             if (outputRightEyeImage)
             {
-                var t = _api.GetRightEyeStereoImage();
+                var t = _api.GetRightEyeStereoImage(rightEyeImageTransform);
                 if (t) try { onRightEyeImage?.Invoke(t); } catch (Exception e) { Debug.LogException(e); }
             }
 
@@ -262,11 +264,19 @@ namespace Xvisio.Unity
         /// <summary>
         /// Resets the VSLAM device to begin a new map.
         /// </summary>
-        public void CreateMap()
+        public void ResetSlam()
         {
 #if XV_PLATFORM_SUPPORTED
             _api.ResetSlam();
 #endif
+        }
+
+        /// <summary>
+        /// Begins the vSLAM mapping system.
+        /// </summary>
+        public void StartSlam()
+        {
+            _api.StartSlam();
         }
 
         /// <summary>

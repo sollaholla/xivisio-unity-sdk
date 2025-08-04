@@ -46,6 +46,14 @@ namespace Xvisio.Unity
         Localized = 4
     }
 
+    public enum XvisioImageTransform
+    {
+        None = 2,
+        InvertHorizontalAndVertical = -1,
+        InvertVertical = 0,
+        InvertHorizontal = 1,
+    }
+
     /// <summary>
     /// Exposes the XVisio SLAM API for Unity.
     /// </summary>
@@ -87,7 +95,10 @@ namespace Xvisio.Unity
         /// Initializes the XVisio SLAM system.
         /// </summary>
         /// <returns>True if initialization was successful, otherwise false.</returns>
-        public bool Initialize() => xslam_init();
+        public bool Initialize()
+        {
+            return xslam_init() && xslam_start_slam();
+        }
 
         /// <summary>
         /// Checks if the XVisio SLAM system is ready to use.
@@ -101,38 +112,46 @@ namespace Xvisio.Unity
             return true;
         }
 
-        public Texture2D GetLeftEyeStereoImage()
+        public Texture2D GetLeftEyeStereoImage(XvisioImageTransform flip = XvisioImageTransform.InvertVertical)
         {
             var width = xslam_get_stereo_width();
             var height = xslam_get_stereo_height();
             if (width <= 1 || height <= 1)
+            {
+                if (_leftEyeStereoImage) UnityEngine.Object.Destroy(_rightEyeStereoImage);
+                _leftEyeImageBuffer = null;
                 return Texture2D.blackTexture;
+            }
 
             _leftEyeStereoImage ??= new Texture2D(width, height, TextureFormat.BGRA32, mipChain: false);
             _leftEyeImageBuffer ??= new byte[width * height * 4];
             var handle = GCHandle.Alloc(_leftEyeImageBuffer, GCHandleType.Pinned);
             try
             {
-                var ok = xslam_get_left_image(handle.AddrOfPinnedObject(), width, height, out _);
+                var ok = xslam_get_left_image(handle.AddrOfPinnedObject(), width, height, (int)flip, out _);
                 if (ok) { _leftEyeStereoImage.LoadRawTextureData(_leftEyeImageBuffer); _leftEyeStereoImage.Apply(false); }
             }
             finally { handle.Free(); }
             return _leftEyeStereoImage;
         }
 
-        public Texture2D GetRightEyeStereoImage()
+        public Texture2D GetRightEyeStereoImage(XvisioImageTransform flip = XvisioImageTransform.InvertVertical)
         {
             var width = xslam_get_stereo_width();
             var height = xslam_get_stereo_height();
             if (width <= 1 || height <= 1)
+            {
+                if (_rightEyeStereoImage) UnityEngine.Object.Destroy(_rightEyeStereoImage);
+                _rightEyeImageBuffer = null;
                 return Texture2D.blackTexture;
+            }
             
             _rightEyeStereoImage ??= new Texture2D(width, height, TextureFormat.BGRA32, mipChain: false);
             _rightEyeImageBuffer = new byte[width * height * 4];
             var handle = GCHandle.Alloc(_rightEyeImageBuffer, GCHandleType.Pinned);
             try
             {
-                var ok = xslam_get_right_image(handle.AddrOfPinnedObject(), width, height, out _);
+                var ok = xslam_get_right_image(handle.AddrOfPinnedObject(), width, height, (int)flip, out _);
                 if (ok) { _rightEyeStereoImage.LoadRawTextureData(_rightEyeImageBuffer); _rightEyeStereoImage.Apply(false); }
             }
             finally { handle.Free(); }
@@ -221,7 +240,11 @@ namespace Xvisio.Unity
         public bool SaveMapAndSwitchToCslam(string path)
         {
             return xslam_ready() && xslam_save_map_and_switch_to_cslam(path);
+        }
 
+        public bool StartSlam()
+        {
+            return xslam_start_slam();
         }
 
         public bool ResetSlam()
@@ -280,15 +303,18 @@ namespace Xvisio.Unity
         private static extern float xslam_get_current_map_visibility();
 
         [DllImport(NativePackage)]
-        private static extern bool xslam_get_left_image(IntPtr data, int width, int height, out double timestamp);
+        private static extern bool xslam_get_left_image(IntPtr data, int width, int height, int flip, out double timestamp);
 
         [DllImport(NativePackage)]
-        private static extern bool xslam_get_right_image(IntPtr data, int width, int height, out double timestamp);
+        private static extern bool xslam_get_right_image(IntPtr data, int width, int height, int flip, out double timestamp);
 
         [DllImport(NativePackage)]
         private static extern int xslam_get_stereo_width();
         
         [DllImport(NativePackage)]
         private static extern int xslam_get_stereo_height();
+        
+        [DllImport(NativePackage)]
+        private static extern bool xslam_start_slam();
     }
 }

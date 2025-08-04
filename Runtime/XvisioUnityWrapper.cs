@@ -112,6 +112,11 @@ namespace Xvisio.Unity
             return true;
         }
 
+        public bool IsReady()
+        {
+            return xslam_ready();
+        }
+
         public Texture2D GetLeftEyeStereoImage(XvisioImageTransform flip = XvisioImageTransform.InvertVertical)
         {
             var width = xslam_get_stereo_width();

@@ -78,7 +78,15 @@ namespace Xvisio.Unity
         /// </summary>
         public bool IsMapLoaded => _api.IsMapLoaded;
         
+        /// <summary>
+        /// Gets a value indicating whether the <see cref="XvisioTrackedPoseDriver"/> is tracking.
+        /// </summary>
         public bool IsTracking { get; private set; }
+        
+        /// <summary>
+        /// Gets the most recent activate <see cref="XvisioTrackedPoseDriver"/>.
+        /// </summary>
+        public static XvisioTrackedPoseDriver Current { get; private set; }
 
         /// <summary>
         /// Gets or sets the current map file name. If the map file name changes, this will forcefully
@@ -147,6 +155,8 @@ namespace Xvisio.Unity
             _api.CslamSwitched += OnCslamSwitched;
             _api.MapSavedStatusChanged += OnMapSavedStatusChanged;
             _api.SlamReset += OnSlamReset;
+
+            Current = this;
         }
 
         private void OnDisable()
@@ -155,6 +165,9 @@ namespace Xvisio.Unity
             _api.CslamSwitched -= OnCslamSwitched;
             _api.MapSavedStatusChanged -= OnMapSavedStatusChanged;
             _api.SlamReset -= OnSlamReset;
+
+            if (Current == this)
+                Current = null;
         }
 
         private void OnDestroy()

@@ -311,16 +311,16 @@ namespace Xvisio.Unity
         public void LoadMap()
         {
 #if XV_PLATFORM_SUPPORTED
-            var map = GetMapPath();
-            if (string.IsNullOrEmpty(map))
-                return;
-            if (!File.Exists(map) || new FileInfo(map).Length == 0)
-                return;
             try { mapLoadEvents.onMapLoadStarted?.Invoke(); } catch (Exception e) { Debug.LogException(e); }
+            var map = GetMapPath();
+            if (string.IsNullOrEmpty(map) || !File.Exists(map) || new FileInfo(map).Length == 0)
+            {
+                MapLoadFailed();
+                return;
+            }
             if (API.LoadMapAndSwitchToCslam(map))
                 return;
-            try { mapLoadEvents.onMapLoadFinished?.Invoke(); } catch (Exception e) { Debug.LogException(e); }
-            try { mapLoadEvents.onMapLoadError?.Invoke(); } catch (Exception e) { Debug.LogException(e); }
+            MapLoadFailed();
 #endif
         }
 
@@ -333,7 +333,10 @@ namespace Xvisio.Unity
             try { mapSaveEvents.onMapSaveStarted?.Invoke(); } catch (Exception e) { Debug.LogException(e); }
             var path = GetMapPath();
             if (string.IsNullOrEmpty(path) || !path.EndsWith(".bin"))
+            {
+                MapSaveFailed();
                 return;
+            }
             if (File.Exists(path))
                 File.Delete(path);
             var directoryName = Path.GetDirectoryName(path);
@@ -341,9 +344,21 @@ namespace Xvisio.Unity
                 Directory.CreateDirectory(directoryName!);
             if (API.SaveMapAndSwitchToCslam(path))
                 return;
+            MapSaveFailed();
+#endif
+        }
+
+        private void MapLoadFailed()
+        {
+
+            try { mapLoadEvents.onMapLoadFinished?.Invoke(); } catch (Exception e) { Debug.LogException(e); }
+            try { mapLoadEvents.onMapLoadError?.Invoke(); } catch (Exception e) { Debug.LogException(e); }
+        }
+
+        private void MapSaveFailed()
+        {
             try { mapSaveEvents.onMapSaveFinished?.Invoke(); } catch (Exception e) { Debug.LogException(e); }
             try { mapSaveEvents.onMapSaveError?.Invoke(); } catch (Exception e) { Debug.LogException(e); }
-#endif
         }
 
         private string GetMapPath()

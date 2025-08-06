@@ -237,24 +237,27 @@ namespace Xvisio.Unity
             var localEuler = Quaternion.LookRotation(mat.GetColumn(2), -mat.GetColumn(1)).eulerAngles;
             localEuler.x = -localEuler.x;
             localEuler.z = -localEuler.z;
-            
-            var localRotation = Quaternion.Euler(localEuler);
-            if (_previousPose.position == localPosition &&
-                _previousPose.rotation == localRotation)
-            {
-                if (Time.unscaledTime - _poseTimeout > 0.5f)
-                    return false;
-            }
-            
-            transform.localPosition = localPosition;
-            transform.localRotation = localRotation;
 
-            _previousPose = new Pose(
-                transform.localPosition,
-                transform.localRotation);
-            
-            _poseTimeout = Time.unscaledTime;
-            return true;
+            try
+            {
+                var localRotation = Quaternion.Euler(localEuler);
+                if (_previousPose.position == localPosition &&
+                    _previousPose.rotation == localRotation)
+                {
+                    if (Time.unscaledTime - _poseTimeout > 0.5f)
+                        return false;
+                }
+
+                transform.SetLocalPositionAndRotation(localPosition, localRotation);
+                _poseTimeout = Time.unscaledTime;
+                return true;
+            }
+            finally
+            {
+                _previousPose = new Pose(
+                    transform.localPosition,
+                    transform.localRotation);
+            }
         }
 
         /// <summary>

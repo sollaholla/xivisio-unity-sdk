@@ -215,7 +215,6 @@ namespace Xvisio.Unity
             {
                 LastTrackingQuality = 1;
                 TrackingLost();
-                mapGeneralEvents.onTrackingLost?.Invoke();
             }
         }
 

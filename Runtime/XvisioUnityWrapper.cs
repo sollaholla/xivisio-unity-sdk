@@ -76,6 +76,8 @@ namespace Xvisio.Unity
         private byte[] _stereoPlaneBuffer;
         private List<XvPlane> _stereoPlanes;
         private int _stereoPlaneCount;
+        private Pose _previousPose;
+        private float _poseTimeout;
 
         private Dictionary<string, GameObject> _planes;
 
@@ -230,11 +232,28 @@ namespace Xvisio.Unity
         {
             if (!xslam_get_transform(out var mat, out _, out var status) || status != 0)
                 return false;
-            transform.localPosition = mat.GetColumn(3);
-            var rotation = Quaternion.LookRotation(mat.GetColumn(2), -mat.GetColumn(1)).eulerAngles;
-            rotation.x = -rotation.x;
-            rotation.z = -rotation.z;
-            transform.localRotation = Quaternion.Euler(rotation);
+            
+            var localPosition = (Vector3)mat.GetColumn(3);
+            var localEuler = Quaternion.LookRotation(mat.GetColumn(2), -mat.GetColumn(1)).eulerAngles;
+            localEuler.x = -localEuler.x;
+            localEuler.z = -localEuler.z;
+            
+            var localRotation = Quaternion.Euler(localEuler);
+            if (_previousPose.position == localPosition &&
+                _previousPose.rotation == localRotation)
+            {
+                if (Time.unscaledTime - _poseTimeout > 0.5f)
+                    return false;
+            }
+            
+            transform.localPosition = localPosition;
+            transform.localRotation = localRotation;
+
+            _previousPose = new Pose(
+                transform.localPosition,
+                transform.localRotation);
+            
+            _poseTimeout = Time.unscaledTime;
             return true;
         }
 

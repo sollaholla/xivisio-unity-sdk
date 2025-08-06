@@ -241,7 +241,7 @@ namespace Xvisio.Unity
             try
             {
                 var localRotation = Quaternion.Euler(localEuler);
-                if (_previousPose.position == localPosition &&
+                if (_previousPose.position == localPosition ||
                     _previousPose.rotation == localRotation)
                 {
                     if (Time.unscaledTime - _poseTimeout > 0.5f)

@@ -214,7 +214,7 @@ namespace Xvisio.Unity
             if (IsTracking)
             {
                 LastTrackingQuality = 1;
-                IsTracking = false;
+                TrackingLost();
                 mapGeneralEvents.onTrackingLost?.Invoke();
             }
         }
@@ -261,8 +261,11 @@ namespace Xvisio.Unity
         public void ManualUpdate()
         {
 #if XV_PLATFORM_SUPPORTED
-            if (!API.TryUpdate()) 
+            if (!API.TryUpdate())
+            {
+                TrackingLost();
                 return;
+            }
 
             if (outputLeftEyeImage)
             {
@@ -277,18 +280,9 @@ namespace Xvisio.Unity
             }
 
             if (LastTrackingQuality > 0 && API.TryApplyTransform(!outputPose ? transform : outputPose))
-            {
-                if (!IsTracking)
-                {
-                    mapGeneralEvents.onTracking?.Invoke();
-                    IsTracking = true;
-                }
-            }
-            else if (IsTracking)
-            {
-                mapGeneralEvents.onTrackingLost?.Invoke();
-                IsTracking = false;
-            }
+                TrackingFound();
+            else
+                TrackingLost();
 #endif
         }
 
@@ -400,6 +394,24 @@ namespace Xvisio.Unity
             return string.IsNullOrWhiteSpace(mapFileName) 
                 ? string.Empty 
                 : Path.Combine(Application.persistentDataPath, mapFileName.Trim());
+        }
+        
+        private void TrackingFound()
+        {
+
+            if (IsTracking)
+                return;
+            mapGeneralEvents.onTracking?.Invoke();
+            IsTracking = true;
+        }
+
+        private void TrackingLost()
+        {
+
+            if (!IsTracking)
+                return;
+            mapGeneralEvents.onTrackingLost?.Invoke();
+            IsTracking = false;
         }
     }
 }

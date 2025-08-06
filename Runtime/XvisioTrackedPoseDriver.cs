@@ -213,19 +213,19 @@ namespace Xvisio.Unity
             try { mapGeneralEvents.onReset?.Invoke(); } catch (Exception e) { Debug.LogException(e); }
             if (IsTracking)
             {
-                mapGeneralEvents.onTrackingLost?.Invoke();
                 LastTrackingQuality = 1;
                 IsTracking = false;
+                mapGeneralEvents.onTrackingLost?.Invoke();
             }
         }
 
         private void OnCslamSwitched(int mapQuality)
         {
+            LastTrackingQuality = 0;
             try { mapLoadEvents.onMapLoaded?.Invoke(); }
             catch (Exception e) { Debug.LogException(e); }
             try { mapLoadEvents.onMapLoadFinished?.Invoke(); }
             catch (Exception e) { Debug.LogException(e); }
-            LastTrackingQuality = 0;
         }
 
         private void OnMapSavedStatusChanged(MapSaveStatus status, int quality)
@@ -233,8 +233,8 @@ namespace Xvisio.Unity
             switch (status)
             {
                 case MapSaveStatus.Saved:
-                    try { mapSaveEvents.onMapSaved?.Invoke(); } catch (Exception e) { Debug.LogException(e); }
                     LastTrackingQuality = 0;
+                    try { mapSaveEvents.onMapSaved?.Invoke(); } catch (Exception e) { Debug.LogException(e); }
                     break;
                 case MapSaveStatus.Error:
                     try { mapSaveEvents.onMapSaveError?.Invoke(); } catch (Exception e) { Debug.LogException(e); }
@@ -246,10 +246,10 @@ namespace Xvisio.Unity
             try { mapSaveEvents.onMapSaveFinished?.Invoke(); } catch (Exception e) { Debug.LogException(e); }
         }
 
-        private void OnLocalized(float pct)
+        private void OnLocalized(float quality)
         {
-            try { mapGeneralEvents.onLocalized?.Invoke(pct); } catch (Exception e) { Debug.LogException(e); }
-            LastTrackingQuality = pct;
+            LastTrackingQuality = quality;
+            try { mapGeneralEvents.onLocalized?.Invoke(quality); } catch (Exception e) { Debug.LogException(e); }
         }
 #else
         private void Start() { }

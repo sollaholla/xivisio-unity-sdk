@@ -71,6 +71,8 @@ namespace Xvisio.Unity
             public UnityEvent<float> onLocalized = new();
         }
 
+        public float LastTrackingQuality { get; private set; } = 1;
+
         /// <summary>
         /// Indicates whether the SLAM map is currently loaded.
         /// </summary>
@@ -212,6 +214,7 @@ namespace Xvisio.Unity
             if (IsTracking)
             {
                 mapGeneralEvents.onTrackingLost?.Invoke();
+                LastTrackingQuality = 1;
                 IsTracking = false;
             }
         }
@@ -222,7 +225,7 @@ namespace Xvisio.Unity
             catch (Exception e) { Debug.LogException(e); }
             try { mapLoadEvents.onMapLoadFinished?.Invoke(); }
             catch (Exception e) { Debug.LogException(e); }
-
+            LastTrackingQuality = 0;
         }
 
         private void OnMapSavedStatusChanged(MapSaveStatus status, int quality)
@@ -231,6 +234,7 @@ namespace Xvisio.Unity
             {
                 case MapSaveStatus.Saved:
                     try { mapSaveEvents.onMapSaved?.Invoke(); } catch (Exception e) { Debug.LogException(e); }
+                    LastTrackingQuality = 0;
                     break;
                 case MapSaveStatus.Error:
                     try { mapSaveEvents.onMapSaveError?.Invoke(); } catch (Exception e) { Debug.LogException(e); }
@@ -245,6 +249,7 @@ namespace Xvisio.Unity
         private void OnLocalized(float pct)
         {
             try { mapGeneralEvents.onLocalized?.Invoke(pct); } catch (Exception e) { Debug.LogException(e); }
+            LastTrackingQuality = pct;
         }
 #else
         private void Start() { }
@@ -271,7 +276,7 @@ namespace Xvisio.Unity
                 if (RightEyeImage) try { onRightEyeImage?.Invoke(RightEyeImage); } catch (Exception e) { Debug.LogException(e); }
             }
 
-            if (API.TryApplyTransform(!outputPose ? transform : outputPose))
+            if (LastTrackingQuality > 0 && API.TryApplyTransform(!outputPose ? transform : outputPose))
             {
                 if (!IsTracking)
                 {
@@ -380,7 +385,6 @@ namespace Xvisio.Unity
 
         private void MapLoadFailed()
         {
-
             try { mapLoadEvents.onMapLoadFinished?.Invoke(); } catch (Exception e) { Debug.LogException(e); }
             try { mapLoadEvents.onMapLoadError?.Invoke(); } catch (Exception e) { Debug.LogException(e); }
         }

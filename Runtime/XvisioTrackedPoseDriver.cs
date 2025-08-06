@@ -348,6 +348,36 @@ namespace Xvisio.Unity
 #endif
         }
 
+        /// <summary>
+        /// Deletes the map with the specified file name.
+        /// </summary>
+        /// <param name="fileName">The filename/path to the map file.</param>
+        /// <returns>True if the file was deleted.</returns>
+        public void DeleteMap(string fileName)
+        {
+            if (string.IsNullOrWhiteSpace(fileName) || fileName.Contains(".."))
+                return;
+            if (!fileName.EndsWith(".bin"))
+                return;
+            var file = Path.Combine(Application.persistentDataPath, fileName);
+            if (!File.Exists(file))
+                return;
+            File.Delete(file);
+        }
+
+        /// <summary>
+        /// Deletes the map with the filename of <see cref="MapFileName"/>.
+        /// </summary>
+        public void DeleteMap()
+        {
+            var path = GetMapPath();
+            if (string.IsNullOrWhiteSpace(path))
+                return;
+            var fileInfo = new FileInfo(path);
+            if (fileInfo.Exists)
+                fileInfo.Delete();
+        }
+
         private void MapLoadFailed()
         {
 

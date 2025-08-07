@@ -283,7 +283,7 @@ namespace Xvisio.Unity
                 if (RightEyeImage) try { onRightEyeImage?.Invoke(RightEyeImage); } catch (Exception e) { Debug.LogException(e); }
             }
 
-            if (LastTrackingQuality > 0 && API.TryApplyTransform(!outputPose ? transform : outputPose))
+            if (API.TryApplyTransform(!outputPose ? transform : outputPose) && LastTrackingQuality > 0)
                 TrackingFound();
             else
                 TrackingLost();

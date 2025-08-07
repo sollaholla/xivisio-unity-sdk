@@ -65,7 +65,7 @@ namespace Xvisio.Unity
         InitializedSuccessfully = 1
     };
 
-    public enum XvisioUnititializeStatus
+    public enum XvisioUnInitializeStatus
     {
         Exception = -1,
         AlreadyUnInitialized = 0,
@@ -360,7 +360,7 @@ namespace Xvisio.Unity
         private static extern bool xslam_ready();
 
         [DllImport(NativePackage, CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        private static extern bool xslam_uninit(out XvisioUnititializeStatus status);
+        private static extern bool xslam_uninit(out XvisioUnInitializeStatus status);
 
         [DllImport(NativePackage, CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         private static extern bool xslam_reset_slam();

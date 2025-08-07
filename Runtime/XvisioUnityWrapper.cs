@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 using UnityEngine;
 
 namespace Xvisio.Unity
@@ -112,17 +113,20 @@ namespace Xvisio.Unity
         /// Initializes the XVisio SLAM system.
         /// </summary>
         /// <returns>True if initialization was successful, otherwise false.</returns>
-        public bool Initialize()
+        public async Task<bool> Initialize()
         {
-            if (_initialized || xslam_init())
+            return await Task.Run(() =>
             {
-                _initialized = true;
+                if (_initialized || xslam_init())
+                {
+                    _initialized = true;
                 
-                var slam = xslam_start_slam(out int error);
-                if (slam)
-                    return true;
-            }
-            return false;
+                    var slam = xslam_start_slam(out int error);
+                    if (slam)
+                        return true;
+                }
+                return false;
+            });
         }
 
         /// <summary>

@@ -5,6 +5,7 @@
 using System;
 using System.Collections;
 using System.IO;
+using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Events;
 
@@ -149,19 +150,26 @@ namespace Xvisio.Unity
         
 #if XV_PLATFORM_SUPPORTED
 
-        private IEnumerator Start()
+        private async void Start()
         {
-            while (!API.Initialize())
-                yield return new WaitForSeconds(1f);
+            try
+            {
+                while (!await API.Initialize())
+                    await Task.Delay(TimeSpan.FromSeconds(5));
 
-            if (!IsMapLoaded)
-            {
-                if (loadAutomatically)
-                    LoadMap();
+                if (!IsMapLoaded)
+                {
+                    if (loadAutomatically)
+                        LoadMap();
+                }
+                else
+                {
+                    try { mapLoadEvents.onMapLoaded?.Invoke(); } catch (Exception e) { Debug.LogException(e); }
+                }
             }
-            else
+            catch (Exception e)
             {
-                try { mapLoadEvents.onMapLoaded?.Invoke(); } catch (Exception e) { Debug.LogException(e); }
+                Debug.LogException(e);
             }
         }
 

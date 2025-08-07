@@ -7,22 +7,22 @@ using UnityEngine;
 
 namespace Xvisio.Unity
 {
-    public enum MapSaveStatus
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    public delegate void XvCslamSwitchedCallback(int mapQuality);
+
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    public delegate void XvSavedCallback(XvisioMapSaveStatus statusOfSavedXvisioMap, int mapQuality);
+
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    public delegate void XvLocalizedCallback(float mapVisibility);
+
+    public enum XvisioMapSaveStatus
     {
         Error = -1,
         NotLoaded = 0,
         Progress = 1,
         Saved = 2
     }
-
-    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-    public delegate void XvCslamSwitchedCallback(int mapQuality);
-
-    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-    public delegate void XvSavedCallback(MapSaveStatus statusOfSavedMap, int mapQuality);
-
-    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-    public delegate void XvLocalizedCallback(float mapVisibility);
 
     /// <summary>
     /// Sets the type of SLAM to be used.
@@ -49,7 +49,7 @@ namespace Xvisio.Unity
         ToFPlanesUpdated = 6
     }
 
-    public enum XvisioTransform
+    public enum XvisioImageTransform
     {
         InvertHorizontalAndVertical = -1,
         InvertVertical = 0,
@@ -57,20 +57,17 @@ namespace Xvisio.Unity
         Original = 2,
     }
 
-    public enum XvisioInitializationStatus
+    [Flags]
+    public enum XvisioOrientationFlipAxis
     {
-        DeviceInvalid = -2,
-        DeviceNotFound = -1,
-        AlreadyInitialized = 0,
-        InitializedSuccessfully = 1
-    };
-
-    public enum XvisioUnInitializeStatus
-    {
-        Exception = -1,
-        AlreadyUnInitialized = 0,
-        UnInitializedSuccessfully = 1
-    };
+        None = 0,
+        X = 1,
+        Y = 2,
+        Z = 4,
+        X180 = 8,
+        Y180 = 16,
+        Z180 = 32,
+    }
 
     /// <summary>
     /// Exposes the XVisio SLAM API for Unity.
@@ -123,6 +120,14 @@ namespace Xvisio.Unity
         /// Invoked when the SLAM system is reset.
         /// </summary>
         public event Action SlamReset;
+        
+#if UNITY_EDITOR
+        [UnityEditor.Callbacks.DidReloadScripts]
+        private static void OnAssemblyReload()
+        {
+            xslam_reset_slam();
+        }
+#endif
 
         /// <summary>
         /// Initializes the XVisio SLAM system.
@@ -132,10 +137,10 @@ namespace Xvisio.Unity
         {
             return await Task.Run(() =>
             {
-                if (_initialized || xslam_init(out var initStatus))
+                if (_initialized || xslam_init())
                 {
                     _initialized = true;
-                    var slam = xslam_start_slam(out var slamStatus);
+                    var slam = xslam_start_slam();
                     if (slam)
                         return true;
                 }
@@ -160,7 +165,7 @@ namespace Xvisio.Unity
             return xslam_ready();
         }
 
-        public Texture2D GetLeftEyeStereoImage(XvisioTransform flip = XvisioTransform.InvertVertical)
+        public Texture2D GetLeftEyeStereoImage(XvisioImageTransform flip = XvisioImageTransform.InvertVertical)
         {
             var width = _leftEyeWidth ??= xslam_get_stereo_width();
             var height = _leftEyeHeight ??= xslam_get_stereo_height();
@@ -185,7 +190,7 @@ namespace Xvisio.Unity
             return _leftEyeStereoImage;
         }
 
-        public Texture2D GetRightEyeStereoImage(XvisioTransform flip = XvisioTransform.InvertVertical)
+        public Texture2D GetRightEyeStereoImage(XvisioImageTransform flip = XvisioImageTransform.InvertVertical)
         {
             var width = _rightEyeWidth ??= xslam_get_stereo_width();
             var height = _rightEyeHeight ??= xslam_get_stereo_height();
@@ -248,7 +253,7 @@ namespace Xvisio.Unity
             if (!_initialized)
                 return true;
             _initialized = false;
-            var uninit = xslam_uninit(out var uninitStatus);
+            var uninit = xslam_uninit();
             return uninit;
         }
 
@@ -262,17 +267,26 @@ namespace Xvisio.Unity
         /// Gets the current transform from the SLAM system.
         /// </summary>
         /// <param name="transform">The transform to apply the SLAM data to.</param>
-        /// <param name="alteration"></param>
+        /// <param name="flipAxes">What axes we need to flip to match Unity orientation.</param>
         /// <returns>True if the transform was successfully applied, otherwise false.</returns>
-        public bool TryApplyTransform(Transform transform)
+        public bool TryApplyTransform(Transform transform, XvisioOrientationFlipAxis flipAxes)
         {
             if (!xslam_get_6dof(out var localPosition, out var q, out var confidence, out _))
                 return false;
 
             var localEuler = new Quaternion((float)q.x, (float)q.y, (float)q.z, (float)q.w).eulerAngles;
-            localEuler.x = -localEuler.x;
-            localEuler.y = -localEuler.y;
-            localEuler.z = -localEuler.z;
+            if (flipAxes.HasFlag(XvisioOrientationFlipAxis.X))
+                localEuler.x = -localEuler.x;
+            if (flipAxes.HasFlag(XvisioOrientationFlipAxis.Y))
+                localEuler.y = -localEuler.y;
+            if (flipAxes.HasFlag(XvisioOrientationFlipAxis.Z))
+                localEuler.z = -localEuler.z;
+            if (flipAxes.HasFlag(XvisioOrientationFlipAxis.X180))
+                localEuler.x += 180;
+            if (flipAxes.HasFlag(XvisioOrientationFlipAxis.Y180))
+                localEuler.y += 180;
+            if (flipAxes.HasFlag(XvisioOrientationFlipAxis.Z180))
+                localEuler.z += 180;
             var localRotation = Quaternion.Euler(localEuler);
             try
             {
@@ -327,7 +341,7 @@ namespace Xvisio.Unity
 
         public bool StartSlam()
         {
-            return xslam_start_slam(out _);
+            return xslam_start_slam();
         }
 
         public bool ResetSlam()
@@ -341,7 +355,7 @@ namespace Xvisio.Unity
 
         public void Stop()
         {
-            if (!xslam_uninit(out var uninitStatus))
+            if (!xslam_uninit())
                 return;
             IsMapLoaded = false;
             if (_leftEyeStereoImage) UnityEngine.Object.Destroy(_leftEyeStereoImage);
@@ -351,13 +365,13 @@ namespace Xvisio.Unity
         }
 
         [DllImport(NativePackage, CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        private static extern bool xslam_init(out XvisioInitializationStatus status);
+        private static extern bool xslam_init();
 
         [DllImport(NativePackage, CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         private static extern bool xslam_ready();
 
         [DllImport(NativePackage, CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        private static extern bool xslam_uninit(out XvisioUnInitializeStatus status);
+        private static extern bool xslam_uninit();
 
         [DllImport(NativePackage, CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         private static extern bool xslam_reset_slam();
@@ -381,7 +395,7 @@ namespace Xvisio.Unity
         private static extern int xslam_get_current_map_quality();
 
         [DllImport(NativePackage, CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        private static extern MapSaveStatus xslam_get_most_recent_save_status();
+        private static extern XvisioMapSaveStatus xslam_get_most_recent_save_status();
 
         [DllImport(NativePackage, CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         private static extern float xslam_get_current_map_visibility();
@@ -399,7 +413,7 @@ namespace Xvisio.Unity
         private static extern int xslam_get_stereo_height();
         
         [DllImport(NativePackage, CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        private static extern bool xslam_start_slam(out int status);
+        private static extern bool xslam_start_slam();
         
         [DllImport(NativePackage, CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         private static extern bool xslam_get_plane_from_stereo(byte[] data, ref int len);

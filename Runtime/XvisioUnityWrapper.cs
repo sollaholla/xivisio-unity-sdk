@@ -48,7 +48,7 @@ namespace Xvisio.Unity
         ToFPlanesUpdated = 6
     }
 
-    public enum XvisioImageTransform
+    public enum XvisioTransform
     {
         None = 2,
         InvertHorizontalAndVertical = -1,
@@ -112,7 +112,12 @@ namespace Xvisio.Unity
         /// <returns>True if initialization was successful, otherwise false.</returns>
         public bool Initialize()
         {
-            return xslam_init() && xslam_start_slam();
+            if (xslam_init())
+            {
+                var slam = xslam_start_slam();
+                if (slam) return true;
+            }
+            return false;
         }
 
         /// <summary>
@@ -132,7 +137,7 @@ namespace Xvisio.Unity
             return xslam_ready();
         }
 
-        public Texture2D GetLeftEyeStereoImage(XvisioImageTransform flip = XvisioImageTransform.InvertVertical)
+        public Texture2D GetLeftEyeStereoImage(XvisioTransform flip = XvisioTransform.InvertVertical)
         {
             var width = _leftEyeWidth ??= xslam_get_stereo_width();
             var height = _leftEyeHeight ??= xslam_get_stereo_height();
@@ -157,7 +162,7 @@ namespace Xvisio.Unity
             return _leftEyeStereoImage;
         }
 
-        public Texture2D GetRightEyeStereoImage(XvisioImageTransform flip = XvisioImageTransform.InvertVertical)
+        public Texture2D GetRightEyeStereoImage(XvisioTransform flip = XvisioTransform.InvertVertical)
         {
             var width = _rightEyeWidth ??= xslam_get_stereo_width();
             var height = _rightEyeHeight ??= xslam_get_stereo_height();
@@ -227,16 +232,19 @@ namespace Xvisio.Unity
         /// Gets the current transform from the SLAM system.
         /// </summary>
         /// <param name="transform">The transform to apply the SLAM data to.</param>
+        /// <param name="alteration"></param>
         /// <returns>True if the transform was successfully applied, otherwise false.</returns>
-        public bool TryApplyTransform(Transform transform)
+        public bool TryApplyTransform(Transform transform, XvisioTransform alteration = XvisioTransform.None)
         {
             if (!xslam_get_transform(out var mat, out _, out var status) || status != 0)
                 return false;
             
             var localPosition = (Vector3)mat.GetColumn(3);
-            var localEuler = Quaternion.LookRotation(mat.GetColumn(2), -mat.GetColumn(1)).eulerAngles;
-            localEuler.x = -localEuler.x;
-            localEuler.z = -localEuler.z;
+            var localEuler = Quaternion.LookRotation(-mat.GetColumn(2), mat.GetColumn(1)).eulerAngles;
+            //localEuler.x = -localEuler.x;
+            //localEuler.z = -localEuler.z;
+
+            var devices = WebCamTexture.devices;
 
             try
             {
@@ -367,5 +375,8 @@ namespace Xvisio.Unity
         
         [DllImport(NativePackage, CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         private static extern bool xslam_get_plane_from_stereo(byte[] data, ref int len);
+
+        [DllImport(NativePackage, CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        private static extern bool xslam_get_6dof(out Vector3 position, out Vector3 orientation, out long timestamp);
     }
 }

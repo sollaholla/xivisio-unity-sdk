@@ -26,6 +26,7 @@ namespace Xvisio.Unity
         }
 
         [SerializeField] private Transform outputPose;
+        [SerializeField] private XvisioTransform poseTransform = XvisioTransform.None;
         [SerializeField] private UpdateType updateType = UpdateType.LateUpdate;
         [SerializeField] private bool enableLogs;
         
@@ -38,10 +39,10 @@ namespace Xvisio.Unity
 
         [Header("Camera")]
         [SerializeField] private bool outputLeftEyeImage;
-        [SerializeField] private XvisioImageTransform leftEyeImageTransform = XvisioImageTransform.InvertVertical;
+        [SerializeField] private XvisioTransform leftEyeImageTransform = XvisioTransform.InvertVertical;
         [SerializeField] private UnityEvent<Texture2D> onLeftEyeImage = new();
         [SerializeField] private bool outputRightEyeImage;
-        [SerializeField] private XvisioImageTransform rightEyeImageTransform = XvisioImageTransform.InvertVertical;
+        [SerializeField] private XvisioTransform rightEyeImageTransform = XvisioTransform.InvertVertical;
         [SerializeField] private UnityEvent<Texture2D> onRightEyeImage = new();
 
         [Serializable]
@@ -211,11 +212,8 @@ namespace Xvisio.Unity
         private void OnSlamReset()
         {
             try { mapGeneralEvents.onReset?.Invoke(); } catch (Exception e) { Debug.LogException(e); }
-            if (IsTracking)
-            {
-                LastTrackingQuality = 1;
-                TrackingLost();
-            }
+            LastTrackingQuality = 1;
+            TrackingLost();
         }
 
         private void OnCslamSwitched(int mapQuality)
@@ -278,7 +276,7 @@ namespace Xvisio.Unity
                 if (RightEyeImage) try { onRightEyeImage?.Invoke(RightEyeImage); } catch (Exception e) { Debug.LogException(e); }
             }
 
-            if (LastTrackingQuality > 0 && API.TryApplyTransform(!outputPose ? transform : outputPose))
+            if (LastTrackingQuality > 0 && API.TryApplyTransform(!outputPose ? transform : outputPose, poseTransform))
                 TrackingFound();
             else
                 TrackingLost();
@@ -397,7 +395,6 @@ namespace Xvisio.Unity
         
         private void TrackingFound()
         {
-
             if (IsTracking)
                 return;
             mapGeneralEvents.onTracking?.Invoke();
@@ -406,7 +403,6 @@ namespace Xvisio.Unity
 
         private void TrackingLost()
         {
-
             if (!IsTracking)
                 return;
             mapGeneralEvents.onTrackingLost?.Invoke();

@@ -146,6 +146,24 @@ namespace Xvisio.Unity
         /// Gets the most recent right eye image.
         /// </summary>
         public Texture2D RightEyeImage { get; private set; }
+
+        /// <summary>
+        /// The image transform for the left eye image.
+        /// </summary>
+        public XvisioTransform LeftEyeImageTransform
+        {
+            get => leftEyeImageTransform;
+            set => leftEyeImageTransform = value;
+        }
+
+        /// <summary>
+        /// The image transform for the right eye image.
+        /// </summary>
+        public XvisioTransform RightEyeImageTransform
+        {
+            get => rightEyeImageTransform;
+            set => rightEyeImageTransform = value;
+        }
         
 #if XV_PLATFORM_SUPPORTED
 

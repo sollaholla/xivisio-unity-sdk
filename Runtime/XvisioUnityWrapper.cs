@@ -266,15 +266,14 @@ namespace Xvisio.Unity
         /// <returns>True if the transform was successfully applied, otherwise false.</returns>
         public bool TryApplyTransform(Transform transform)
         {
-            if (!xslam_get_transform(out var mat, out _, out var status) || status != 0)
+            if (!xslam_get_6dof(out var localPosition, out var q, out var confidence, out _))
                 return false;
-            
-            var localPosition = (Vector3)mat.GetColumn(3);
-            var localEuler = Quaternion.LookRotation(mat.GetColumn(2), -mat.GetColumn(1)).eulerAngles;
+
+            var localEuler = new Quaternion((float)q.x, (float)q.y, (float)q.z, (float)q.w).eulerAngles;
             localEuler.x = -localEuler.x;
+            localEuler.y = -localEuler.y;
             localEuler.z = -localEuler.z;
             var localRotation = Quaternion.Euler(localEuler);
-
             try
             {
                 if (_previousPose.position == localPosition ||
@@ -284,7 +283,7 @@ namespace Xvisio.Unity
                         return false;
                 }
 
-                transform.SetLocalPositionAndRotation(localPosition, localRotation);
+                transform.SetLocalPositionAndRotation(-localPosition, localRotation);
                 _poseTimeout = Time.unscaledTime;
                 return true;
             }
@@ -404,8 +403,13 @@ namespace Xvisio.Unity
         
         [DllImport(NativePackage, CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         private static extern bool xslam_get_plane_from_stereo(byte[] data, ref int len);
+        
+        private struct Vector4d
+        {
+            public double x, y, z, w;
+        }
 
         [DllImport(NativePackage, CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        private static extern bool xslam_get_6dof(out Vector3 position, out Vector3 orientation, out long timestamp);
+        private static extern bool xslam_get_6dof(out Vector3 position, out Vector4d orientation, out double confidence, out long timestamp);
     }
 }

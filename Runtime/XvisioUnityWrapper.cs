@@ -79,6 +79,8 @@ namespace Xvisio.Unity
         private Pose _previousPose;
         private float _poseTimeout;
 
+        private static bool _initialized;
+
         private Dictionary<string, GameObject> _planes;
 
         /// <summary>
@@ -112,14 +114,13 @@ namespace Xvisio.Unity
         /// <returns>True if initialization was successful, otherwise false.</returns>
         public bool Initialize()
         {
-            if (xslam_init())
+            if (_initialized || xslam_init())
             {
+                _initialized = true;
+                
                 var slam = xslam_start_slam(out int error);
                 if (slam)
-                {
-                    var e = error;
                     return true;
-                }
             }
             return false;
         }
@@ -224,7 +225,13 @@ namespace Xvisio.Unity
         /// Uninitializes the XVisio SLAM system, releasing any resources it holds.
         /// </summary>
         /// <returns>True if uninitialization was successful, otherwise false.</returns>
-        public bool Uninitialize() => xslam_uninit();
+        public bool Uninitialize()
+        {
+            if (!_initialized)
+                return true;
+            _initialized = false;
+            return xslam_uninit();
+        }
 
         /// <summary>
         /// Sets the type of SLAM to be used.

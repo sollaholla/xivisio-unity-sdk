@@ -114,8 +114,12 @@ namespace Xvisio.Unity
         {
             if (xslam_init())
             {
-                var slam = xslam_start_slam();
-                if (slam) return true;
+                var slam = xslam_start_slam(out int error);
+                if (slam)
+                {
+                    var e = error;
+                    return true;
+                }
             }
             return false;
         }
@@ -300,7 +304,7 @@ namespace Xvisio.Unity
 
         public bool StartSlam()
         {
-            return xslam_start_slam();
+            return xslam_start_slam(out _);
         }
 
         public bool ResetSlam()
@@ -371,7 +375,7 @@ namespace Xvisio.Unity
         private static extern int xslam_get_stereo_height();
         
         [DllImport(NativePackage, CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        private static extern bool xslam_start_slam();
+        private static extern bool xslam_start_slam(out int error);
         
         [DllImport(NativePackage, CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         private static extern bool xslam_get_plane_from_stereo(byte[] data, ref int len);

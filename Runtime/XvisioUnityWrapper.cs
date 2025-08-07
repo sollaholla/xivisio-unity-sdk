@@ -117,11 +117,11 @@ namespace Xvisio.Unity
         {
             return await Task.Run(() =>
             {
-                if (_initialized || xslam_init())
+                if (_initialized || xslam_init(out int initStatus))
                 {
                     _initialized = true;
                 
-                    var slam = xslam_start_slam(out int error);
+                    var slam = xslam_start_slam(out int slamStatus);
                     if (slam)
                         return true;
                 }
@@ -234,7 +234,8 @@ namespace Xvisio.Unity
             if (!_initialized)
                 return true;
             _initialized = false;
-            return xslam_uninit();
+            var uninit = xslam_uninit(out int uninitStatus);
+            return uninit;
         }
 
         /// <summary>
@@ -329,7 +330,8 @@ namespace Xvisio.Unity
 
         public void Stop()
         {
-            if (!xslam_uninit()) Debug.LogError("Failed to uninitialize Xvisio.");
+            if (!xslam_uninit(out int uninitStatus))
+                return;
             IsMapLoaded = false;
             if (_leftEyeStereoImage) UnityEngine.Object.Destroy(_leftEyeStereoImage);
             if (_rightEyeStereoImage) UnityEngine.Object.Destroy(_rightEyeStereoImage);
@@ -338,13 +340,13 @@ namespace Xvisio.Unity
         }
 
         [DllImport(NativePackage, CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        private static extern bool xslam_init();
+        private static extern bool xslam_init(out int status);
 
         [DllImport(NativePackage, CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         private static extern bool xslam_ready();
 
         [DllImport(NativePackage, CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        private static extern bool xslam_uninit();
+        private static extern bool xslam_uninit(out int status);
 
         [DllImport(NativePackage, CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         private static extern bool xslam_reset_slam();
@@ -386,7 +388,7 @@ namespace Xvisio.Unity
         private static extern int xslam_get_stereo_height();
         
         [DllImport(NativePackage, CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        private static extern bool xslam_start_slam(out int error);
+        private static extern bool xslam_start_slam(out int status);
         
         [DllImport(NativePackage, CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         private static extern bool xslam_get_plane_from_stereo(byte[] data, ref int len);

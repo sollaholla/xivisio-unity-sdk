@@ -57,6 +57,21 @@ namespace Xvisio.Unity
         InvertHorizontal = 1,
     }
 
+    public enum XvisioInitializationStatus
+    {
+        DeviceInvalid = -2,
+        DeviceNotFound = -1,
+        AlreadyInitialized = 0,
+        InitializedSuccessfully = 1
+    };
+
+    public enum XvisioUnititializeStatus
+    {
+        Exception = -1,
+        AlreadyUnInitialized = 0,
+        UnInitializedSuccessfully = 1
+    };
+
     /// <summary>
     /// Exposes the XVisio SLAM API for Unity.
     /// </summary>
@@ -113,15 +128,14 @@ namespace Xvisio.Unity
         /// Initializes the XVisio SLAM system.
         /// </summary>
         /// <returns>True if initialization was successful, otherwise false.</returns>
-        public async Task<bool> Initialize()
+        public static async Task<bool> Initialize()
         {
             return await Task.Run(() =>
             {
-                if (_initialized || xslam_init(out int initStatus))
+                if (_initialized || xslam_init(out var initStatus))
                 {
                     _initialized = true;
-                
-                    var slam = xslam_start_slam(out int slamStatus);
+                    var slam = xslam_start_slam(out var slamStatus);
                     if (slam)
                         return true;
                 }
@@ -234,7 +248,7 @@ namespace Xvisio.Unity
             if (!_initialized)
                 return true;
             _initialized = false;
-            var uninit = xslam_uninit(out int uninitStatus);
+            var uninit = xslam_uninit(out var uninitStatus);
             return uninit;
         }
 
@@ -330,7 +344,7 @@ namespace Xvisio.Unity
 
         public void Stop()
         {
-            if (!xslam_uninit(out int uninitStatus))
+            if (!xslam_uninit(out var uninitStatus))
                 return;
             IsMapLoaded = false;
             if (_leftEyeStereoImage) UnityEngine.Object.Destroy(_leftEyeStereoImage);
@@ -340,13 +354,13 @@ namespace Xvisio.Unity
         }
 
         [DllImport(NativePackage, CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        private static extern bool xslam_init(out int status);
+        private static extern bool xslam_init(out XvisioInitializationStatus status);
 
         [DllImport(NativePackage, CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         private static extern bool xslam_ready();
 
         [DllImport(NativePackage, CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        private static extern bool xslam_uninit(out int status);
+        private static extern bool xslam_uninit(out XvisioUnititializeStatus status);
 
         [DllImport(NativePackage, CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         private static extern bool xslam_reset_slam();

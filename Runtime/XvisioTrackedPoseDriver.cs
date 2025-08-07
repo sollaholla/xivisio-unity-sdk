@@ -154,7 +154,7 @@ namespace Xvisio.Unity
         {
             try
             {
-                while (!await API.Initialize())
+                while (!await XvisioUnityWrapper.Initialize())
                     await Task.Delay(TimeSpan.FromSeconds(5));
 
                 if (!IsMapLoaded)

@@ -27,7 +27,6 @@ namespace Xvisio.Unity
         }
 
         [SerializeField] private Transform outputPose;
-        [SerializeField] private XvisioTransform poseTransform = XvisioTransform.None;
         [SerializeField] private UpdateType updateType = UpdateType.LateUpdate;
         [SerializeField] private bool enableLogs;
         
@@ -284,7 +283,7 @@ namespace Xvisio.Unity
                 if (RightEyeImage) try { onRightEyeImage?.Invoke(RightEyeImage); } catch (Exception e) { Debug.LogException(e); }
             }
 
-            if (LastTrackingQuality > 0 && API.TryApplyTransform(!outputPose ? transform : outputPose, poseTransform))
+            if (LastTrackingQuality > 0 && API.TryApplyTransform(!outputPose ? transform : outputPose))
                 TrackingFound();
             else
                 TrackingLost();

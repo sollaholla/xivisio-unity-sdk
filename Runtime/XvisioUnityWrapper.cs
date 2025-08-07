@@ -51,10 +51,10 @@ namespace Xvisio.Unity
 
     public enum XvisioTransform
     {
-        None = 2,
         InvertHorizontalAndVertical = -1,
         InvertVertical = 0,
         InvertHorizontal = 1,
+        Original = 2,
     }
 
     public enum XvisioInitializationStatus
@@ -264,17 +264,17 @@ namespace Xvisio.Unity
         /// <param name="transform">The transform to apply the SLAM data to.</param>
         /// <param name="alteration"></param>
         /// <returns>True if the transform was successfully applied, otherwise false.</returns>
-        public bool TryApplyTransform(Transform transform, XvisioTransform alteration = XvisioTransform.None)
+        public bool TryApplyTransform(Transform transform)
         {
             if (!xslam_get_transform(out var mat, out _, out var status) || status != 0)
                 return false;
             
             var localPosition = (Vector3)mat.GetColumn(3);
-            var localEuler = Quaternion.LookRotation(-mat.GetColumn(2), mat.GetColumn(1)).eulerAngles;
-            //localEuler.x = -localEuler.x;
-            //localEuler.z = -localEuler.z;
-
-            var devices = WebCamTexture.devices;
+            var localEuler = Quaternion.LookRotation(
+                mat.GetColumn(2), 
+                -mat.GetColumn(1)).eulerAngles;
+            localEuler.x = -localEuler.x;
+            localEuler.z = -localEuler.z;
 
             try
             {

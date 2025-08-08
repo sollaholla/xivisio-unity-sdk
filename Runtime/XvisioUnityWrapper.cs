@@ -137,7 +137,7 @@ namespace Xvisio.Unity
         /// Initializes the XVisio SLAM system.
         /// </summary>
         /// <returns>True if initialization was successful, otherwise false.</returns>
-        public static async Task<bool> Initialize()
+        public static async Task<bool> InitializeAsync()
         {
             return await Task.Run(() =>
             {
@@ -383,9 +383,6 @@ namespace Xvisio.Unity
         [DllImport(NativePackage, CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         private static extern void xslam_slam_type(XvisioSlamType t);
 
-        [DllImport(NativePackage, CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        private static extern bool xslam_get_transform(out Matrix4x4 m, out long tsUs, out int status);
-
         [DllImport(NativePackage, CallingConvention = CallingConvention.Cdecl, ExactSpelling = true, CharSet = CharSet.Ansi)]
         private static extern bool xslam_load_map_and_switch_to_cslam(string path);
 
@@ -418,12 +415,10 @@ namespace Xvisio.Unity
         
         [DllImport(NativePackage, CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         private static extern bool xslam_start_slam();
-        
-        [DllImport(NativePackage, CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        private static extern bool xslam_get_plane_from_stereo(byte[] data, ref int len);
-        
+
         private struct Vector4d
         {
+            // ReSharper disable InconsistentNaming
             public double x, y, z, w;
         }
 

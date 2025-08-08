@@ -158,7 +158,7 @@ namespace Xvisio.Unity
         {
             try
             {
-                while (!await XvisioUnityWrapper.Initialize())
+                while (!await XvisioUnityWrapper.InitializeAsync())
                     await Task.Delay(TimeSpan.FromSeconds(5));
 
                 if (!IsMapLoaded)
@@ -281,7 +281,8 @@ namespace Xvisio.Unity
                 LeftEyeImage = API.GetLeftEyeStereoImage(cameraPreset switch
                 {
                     CameraPreset.XR50 => XvisioImageTransform.InvertVertical,
-                    CameraPreset.DS80 => XvisioImageTransform.InvertVertical
+                    CameraPreset.DS80 => XvisioImageTransform.InvertVertical,
+                    _ => throw new ArgumentOutOfRangeException()
                 });
                 if (LeftEyeImage) try { onLeftEyeImage?.Invoke(LeftEyeImage); } catch (Exception e) { Debug.LogException(e); }
             }

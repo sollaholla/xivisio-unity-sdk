@@ -1,4 +1,8 @@
-﻿using System;
+﻿#if UNITY_EDITOR_WIN || UNITY_STANDALONE_WIN
+#define XV_PLATFORM_SUPPORTED
+#endif
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -121,7 +125,7 @@ namespace Xvisio.Unity
         /// </summary>
         public event Action SlamReset;
         
-#if UNITY_EDITOR
+#if UNITY_EDITOR && XV_PLATFORM_SUPPORTED
         [UnityEditor.Callbacks.DidReloadScripts]
         private static void OnAssemblyReload()
         {

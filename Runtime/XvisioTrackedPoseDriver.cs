@@ -198,11 +198,6 @@ namespace Xvisio.Unity
                 Current = null;
         }
 
-        private void OnDestroy()
-        {
-            API.Stop();
-        }
-        
         private void Update()
         {
             if (updateType is UpdateType.Update)

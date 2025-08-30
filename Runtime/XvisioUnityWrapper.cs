@@ -131,7 +131,20 @@ namespace Xvisio.Unity
         {
             if (Application.platform != RuntimePlatform.WindowsEditor)
                 return;
-            xslam_reset_slam();
+            xslam_uninit();
+        }
+#endif
+#if XV_PLATFORM_SUPPORTED
+#if UNITY_EDITOR
+        [UnityEditor.InitializeOnLoadMethod]
+#endif
+        [RuntimeInitializeOnLoadMethod]
+        private static void InitOnLoad()
+        {
+            Application.quitting += () =>
+            {
+                xslam_uninit();
+            };
         }
 #endif
 

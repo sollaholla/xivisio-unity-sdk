@@ -129,6 +129,8 @@ namespace Xvisio.Unity
         [UnityEditor.Callbacks.DidReloadScripts]
         private static void OnAssemblyReload()
         {
+            if (Application.platform != RuntimePlatform.WindowsEditor)
+                return;
             xslam_reset_slam();
         }
 #endif

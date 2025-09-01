@@ -275,8 +275,7 @@ namespace Xvisio.Unity
             {
                 LeftEyeImage = API.GetLeftEyeStereoImage(cameraPreset switch
                 {
-                    CameraPreset.XR50 => XvisioImageTransform.InvertVertical,
-                    CameraPreset.DS80 => XvisioImageTransform.InvertVertical,
+                    CameraPreset.XR50 or CameraPreset.DS80 => XvisioImageTransform.InvertVertical,
                     _ => throw new ArgumentOutOfRangeException()
                 });
                 if (LeftEyeImage) try { onLeftEyeImage?.Invoke(LeftEyeImage); } catch (Exception e) { Debug.LogException(e); }
@@ -286,8 +285,7 @@ namespace Xvisio.Unity
             {
                 RightEyeImage = API.GetRightEyeStereoImage(cameraPreset switch
                 {
-                    CameraPreset.XR50 => XvisioImageTransform.InvertVertical,
-                    CameraPreset.DS80 => XvisioImageTransform.InvertVertical
+                    CameraPreset.XR50 or CameraPreset.DS80 => XvisioImageTransform.InvertVertical
                 });
                 if (RightEyeImage) try { onRightEyeImage?.Invoke(RightEyeImage); } catch (Exception e) { Debug.LogException(e); }
             }

@@ -290,7 +290,7 @@ namespace Xvisio.Unity
                 if (RightEyeImage) try { onRightEyeImage?.Invoke(RightEyeImage); } catch (Exception e) { Debug.LogException(e); }
             }
 
-            if (API.TryApplyTransform(!outputPose ? transform : outputPose,
+            if (XvisioUnityWrapper.TryApplyTransform(!outputPose ? transform : outputPose,
                     cameraPreset switch
                     {
                         CameraPreset.XR50 => XvisioOrientationFlipAxis.Z | XvisioOrientationFlipAxis.X180,

@@ -93,8 +93,6 @@ namespace Xvisio.Unity
         private byte[] _stereoPlaneBuffer;
         private List<XvPlane> _stereoPlanes;
         private int _stereoPlaneCount;
-        private Pose _previousPose;
-        private float _poseTimeout;
 
         private static bool _initialized;
 
@@ -288,12 +286,24 @@ namespace Xvisio.Unity
         /// <param name="transform">The transform to apply the SLAM data to.</param>
         /// <param name="flipAxes">What axes we need to flip to match Unity orientation.</param>
         /// <returns>True if the transform was successfully applied, otherwise false.</returns>
-        public bool TryApplyTransform(Transform transform, XvisioOrientationFlipAxis flipAxes)
+        public static bool TryApplyTransform(Transform transform, XvisioOrientationFlipAxis flipAxes)
         {
-            if (!xslam_get_6dof(out var localPosition, out var q, out var confidence, out _))
+            if (!xslam_get_6dof(out var localPosition, out var localRotation, out _, out _))
                 return false;
+            transform.SetLocalPositionAndRotation(
+                ConvertXvPositionToUnity(localPosition),
+                ConvertXvRotationToUnity(localRotation, flipAxes));
+            return true;
+        }
 
-            var localEuler = new Quaternion((float)q.x, (float)q.y, (float)q.z, (float)q.w).eulerAngles;
+        private static Vector3 ConvertXvPositionToUnity(Vector3 xvPosition)
+        {
+            return -xvPosition;
+        }
+
+        private static Quaternion ConvertXvRotationToUnity(Vector4d xvRotation, XvisioOrientationFlipAxis flipAxes)
+        {
+            var localEuler = new Quaternion((float)xvRotation.x, (float)xvRotation.y, (float)xvRotation.z, (float)xvRotation.w).eulerAngles;
             if (flipAxes.HasFlag(XvisioOrientationFlipAxis.X))
                 localEuler.x = -localEuler.x;
             if (flipAxes.HasFlag(XvisioOrientationFlipAxis.Y))
@@ -307,25 +317,7 @@ namespace Xvisio.Unity
             if (flipAxes.HasFlag(XvisioOrientationFlipAxis.Z180))
                 localEuler.z += 180;
             var localRotation = Quaternion.Euler(localEuler);
-            try
-            {
-                if (_previousPose.position == localPosition ||
-                    _previousPose.rotation == localRotation)
-                {
-                    if (Time.unscaledTime - _poseTimeout > 0.5f)
-                        return false;
-                }
-
-                transform.SetLocalPositionAndRotation(-localPosition, localRotation);
-                _poseTimeout = Time.unscaledTime;
-                return true;
-            }
-            finally
-            {
-                _previousPose = new Pose(
-                    localPosition,
-                    localRotation);
-            }
+            return localRotation;
         }
 
         /// <summary>

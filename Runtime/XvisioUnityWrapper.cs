@@ -4,7 +4,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using UnityEngine;
@@ -72,6 +71,12 @@ namespace Xvisio.Unity
         Y180 = 16,
         Z180 = 32,
     }
+    
+    public enum XvisioCamera
+    {
+        XR50 = 0,
+        DS80 = 1
+    }
 
     /// <summary>
     /// Exposes the XVisio SLAM API for Unity.
@@ -102,6 +107,11 @@ namespace Xvisio.Unity
         /// Indicates whether the SLAM map is currently loaded.
         /// </summary>   
         public bool IsMapLoaded { get; private set; }
+
+        /// <summary>
+        /// The estimated device type based on the SLAM system's analysis.
+        /// </summary>
+        public XvisioCamera EstimatedCameraModel { get; private set; } = XvisioCamera.XR50;
 
         /// <summary>
         /// Invoked when a map is loaded successfully.
@@ -150,16 +160,20 @@ namespace Xvisio.Unity
         /// Initializes the XVisio SLAM system.
         /// </summary>
         /// <returns>True if initialization was successful, otherwise false.</returns>
-        public static async Task<bool> InitializeAsync()
+        public async Task<bool> InitializeAsync()
         {
             return await Task.Run(() =>
             {
                 if (_initialized || xslam_init())
                 {
                     _initialized = true;
-                    var slam = xslam_start_slam();
-                    if (slam)
+                    var started = xslam_start_slam();
+                    if (started)
+                    {
+                        if (xv_device_model(out var model))
+                            EstimatedCameraModel = (XvisioCamera)model;
                         return true;
+                    }
                 }
                 return false;
             });
@@ -182,8 +196,13 @@ namespace Xvisio.Unity
             return xslam_ready();
         }
 
-        public Texture2D GetLeftEyeStereoImage(XvisioImageTransform flip = XvisioImageTransform.InvertVertical)
+        public Texture2D GetLeftEyeStereoImage()
         {
+            var flip = EstimatedCameraModel switch
+            {
+                XvisioCamera.XR50 or XvisioCamera.DS80 => XvisioImageTransform.InvertVertical,
+            };
+            
             var width = _leftEyeWidth ??= xslam_get_stereo_width();
             var height = _leftEyeHeight ??= xslam_get_stereo_height();
             if (width <= 1 || height <= 1)
@@ -207,8 +226,13 @@ namespace Xvisio.Unity
             return _leftEyeStereoImage;
         }
 
-        public Texture2D GetRightEyeStereoImage(XvisioImageTransform flip = XvisioImageTransform.InvertVertical)
+        public Texture2D GetRightEyeStereoImage()
         {
+            var flip = EstimatedCameraModel switch
+            {
+                XvisioCamera.XR50 or XvisioCamera.DS80 => XvisioImageTransform.InvertVertical,
+            };
+
             var width = _rightEyeWidth ??= xslam_get_stereo_width();
             var height = _rightEyeHeight ??= xslam_get_stereo_height();
             if (width <= 1 || height <= 1)
@@ -238,7 +262,6 @@ namespace Xvisio.Unity
             {
                 switch (status)
                 {
-
                     case XvisioSlamMapEvent.MapSaved:
                     case XvisioSlamMapEvent.MapSaveFailed:
                         MapSavedStatusChanged?.Invoke(
@@ -286,10 +309,15 @@ namespace Xvisio.Unity
         /// <param name="transform">The transform to apply the SLAM data to.</param>
         /// <param name="flipAxes">What axes we need to flip to match Unity orientation.</param>
         /// <returns>True if the transform was successfully applied, otherwise false.</returns>
-        public static bool TryApplyTransform(Transform transform, XvisioOrientationFlipAxis flipAxes)
+        public bool TryApplyTransform(Transform transform)
         {
-            if (!xslam_get_6dof(out var localPosition, out var localRotation, out _, out _))
+            if (!xslam_get_6dof(out var localPosition, out var localRotation, out var confidence, out var timestamp))
                 return false;
+            var flipAxes = EstimatedCameraModel switch
+            {
+                XvisioCamera.XR50 => XvisioOrientationFlipAxis.Z | XvisioOrientationFlipAxis.X180,
+                XvisioCamera.DS80 => XvisioOrientationFlipAxis.X | XvisioOrientationFlipAxis.Z,
+            };
             transform.SetLocalPositionAndRotation(
                 ConvertXvPositionToUnity(localPosition),
                 ConvertXvRotationToUnity(localRotation, flipAxes));
@@ -374,6 +402,9 @@ namespace Xvisio.Unity
             _leftEyeImageBuffer = null;
             _rightEyeImageBuffer = null;
         }
+        
+        [DllImport(NativePackage, CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        private static extern bool xv_device_model(out int model);
 
         [DllImport(NativePackage, CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         private static extern bool xslam_init();

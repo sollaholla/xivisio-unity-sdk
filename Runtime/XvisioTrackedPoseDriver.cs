@@ -18,12 +18,6 @@ namespace Xvisio.Unity
     [DisallowMultipleComponent]
     public class XvisioTrackedPoseDriver : MonoBehaviour
     {
-        public enum CameraPreset
-        {
-            XR50,
-            DS80
-        }
-        
         public enum UpdateType
         {
             Update,
@@ -33,7 +27,6 @@ namespace Xvisio.Unity
         }
 
         [SerializeField] private Transform outputPose;
-        [SerializeField] private CameraPreset cameraPreset;
         [SerializeField] private UpdateType updateType = UpdateType.LateUpdate;
         [SerializeField] private bool enableLogs;
         
@@ -158,7 +151,7 @@ namespace Xvisio.Unity
         {
             try
             {
-                while (!await XvisioUnityWrapper.InitializeAsync())
+                while (!await API.InitializeAsync())
                     await Task.Delay(TimeSpan.FromSeconds(5));
 
                 if (!IsMapLoaded)
@@ -270,37 +263,23 @@ namespace Xvisio.Unity
                 TrackingLost();
                 return;
             }
+            
+            if (API.TryApplyTransform(!outputPose ? transform : outputPose) && LastTrackingQuality > 0)
+                TrackingFound();
+            else
+                TrackingLost();
 
             if (outputLeftEyeImage)
             {
-                LeftEyeImage = API.GetLeftEyeStereoImage(cameraPreset switch
-                {
-                    CameraPreset.XR50 or CameraPreset.DS80 => XvisioImageTransform.InvertVertical,
-                    _ => throw new ArgumentOutOfRangeException()
-                });
+                LeftEyeImage = API.GetLeftEyeStereoImage();
                 if (LeftEyeImage) try { onLeftEyeImage?.Invoke(LeftEyeImage); } catch (Exception e) { Debug.LogException(e); }
             }
 
             if (outputRightEyeImage)
             {
-                RightEyeImage = API.GetRightEyeStereoImage(cameraPreset switch
-                {
-                    CameraPreset.XR50 or CameraPreset.DS80 => XvisioImageTransform.InvertVertical
-                });
+                RightEyeImage = API.GetRightEyeStereoImage();
                 if (RightEyeImage) try { onRightEyeImage?.Invoke(RightEyeImage); } catch (Exception e) { Debug.LogException(e); }
             }
-
-            if (XvisioUnityWrapper.TryApplyTransform(!outputPose ? transform : outputPose,
-                    cameraPreset switch
-                    {
-                        CameraPreset.XR50 => XvisioOrientationFlipAxis.Z | XvisioOrientationFlipAxis.X180,
-                        CameraPreset.DS80 => XvisioOrientationFlipAxis.X | XvisioOrientationFlipAxis.Z,
-                        _ => throw new ArgumentOutOfRangeException()
-                        
-                    }) && LastTrackingQuality > 0)
-                TrackingFound();
-            else
-                TrackingLost();
 #endif
         }
 

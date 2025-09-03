@@ -86,6 +86,16 @@ namespace Xvisio.Unity
         /// Gets the most recent activate <see cref="XvisioTrackedPoseDriver"/>.
         /// </summary>
         public static XvisioTrackedPoseDriver Current { get; private set; }
+        
+        /// <summary>
+        /// Gets a value indicating whether the SLAM system has been initialized.
+        /// </summary>
+        public bool IsInitialized { get; private set; }
+        
+        /// <summary>
+        /// Occurs when the SLAM system has been initialized.
+        /// </summary>
+        public event Action Initialized;
 
         /// <summary>
         /// Gets or sets the current map file name. If the map file name changes, this will forcefully
@@ -261,7 +271,14 @@ namespace Xvisio.Unity
             if (!API.TryUpdate())
             {
                 TrackingLost();
+				IsInitialized = false;
                 return;
+            }
+
+			if (!IsInitialized)
+            {
+                IsInitialized = true;
+                try { Initialized?.Invoke(); } catch (Exception e) { Debug.LogException(e); }
             }
             
             if (API.TryApplyTransform(!outputPose ? transform : outputPose) && LastTrackingQuality > 0)

@@ -137,8 +137,9 @@ namespace Xvisio.Unity
         [UnityEditor.Callbacks.DidReloadScripts]
         private static void OnAssemblyReload()
         {
-            if (Application.platform != RuntimePlatform.WindowsEditor)
+            if (UnityEngine.Application.platform == RuntimePlatform.OSXEditor)
                 return;
+
             xslam_uninit();
         }
 #endif
@@ -149,6 +150,9 @@ namespace Xvisio.Unity
         [RuntimeInitializeOnLoadMethod]
         private static void InitOnLoad()
         {
+            if (UnityEngine.Application.platform == RuntimePlatform.OSXEditor)
+                return;
+
             Application.quitting += () =>
             {
                 xslam_uninit();
@@ -162,6 +166,9 @@ namespace Xvisio.Unity
         /// <returns>True if initialization was successful, otherwise false.</returns>
         public async Task<bool> InitializeAsync()
         {
+            if (UnityEngine.Application.platform == RuntimePlatform.OSXEditor)
+                return false;
+
             return await Task.Run(() =>
             {
                 if (_initialized || xslam_init())
@@ -185,6 +192,8 @@ namespace Xvisio.Unity
         /// <returns>True if the system is ready, otherwise false.</returns>
         public bool TryUpdate()
         {
+            if (UnityEngine.Application.platform == RuntimePlatform.OSXEditor)
+                return false;
             if (!xslam_ready())
                 return false;
             DequeueEvents();
@@ -193,6 +202,9 @@ namespace Xvisio.Unity
 
         public bool IsReady()
         {
+            if (UnityEngine.Application.platform == RuntimePlatform.OSXEditor)
+                return false;
+
             return xslam_ready();
         }
 

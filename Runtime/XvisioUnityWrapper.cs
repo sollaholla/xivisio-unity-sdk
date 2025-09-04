@@ -341,7 +341,7 @@ namespace Xvisio.Unity
             return -xvPosition;
         }
 
-        private static Quaternion ConvertXvRotationToUnity(Vector4d xvRotation, XvisioOrientationFlipAxis flipAxes)
+        private static Quaternion ConvertXvRotationToUnity(XvVector4d xvRotation, XvisioOrientationFlipAxis flipAxes)
         {
             var localEuler = new Quaternion((float)xvRotation.x, (float)xvRotation.y, (float)xvRotation.z, (float)xvRotation.w).eulerAngles;
             if (flipAxes.HasFlag(XvisioOrientationFlipAxis.X))
@@ -466,13 +466,8 @@ namespace Xvisio.Unity
         [DllImport(NativePackage, CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         private static extern bool xslam_start_slam();
 
-        private struct Vector4d
-        {
-            // ReSharper disable InconsistentNaming
-            public double x, y, z, w;
-        }
-
+        private struct XvVector4d { public double x, y, z, w; }
         [DllImport(NativePackage, CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        private static extern bool xslam_get_6dof(out Vector3 position, out Vector4d orientation, out double confidence, out long timestamp);
+        private static extern bool xslam_get_6dof(out Vector3 position, out XvVector4d orientation, out double confidence, out long timestamp);
     }
 }

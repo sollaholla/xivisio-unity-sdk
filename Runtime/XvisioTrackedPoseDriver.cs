@@ -174,9 +174,10 @@ namespace Xvisio.Unity
                     try { mapLoadEvents.onMapLoaded?.Invoke(); } catch (Exception e) { Debug.LogException(e); }
                 }
             }
-            catch (Exception e)
+            catch (DllNotFoundException e)
             {
-                Debug.LogException(e);
+                enabled = false;
+                Debug.LogError("Xvisio SDK DLL not found. Please ensure the Xvisio SDK is properly installed on this device.\n" + e);
             }
         }
 

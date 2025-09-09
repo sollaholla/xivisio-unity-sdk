@@ -52,14 +52,6 @@ namespace Xvisio.Unity
         ToFPlanesUpdated = 6
     }
 
-    public enum XvisioImageTransform
-    {
-        InvertHorizontalAndVertical = -1,
-        InvertVertical = 0,
-        InvertHorizontal = 1,
-        Original = 2,
-    }
-
     [Flags]
     public enum XvisioOrientationFlipAxis
     {

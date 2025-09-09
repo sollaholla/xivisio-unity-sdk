@@ -387,19 +387,11 @@ namespace Xvisio.Unity
         {
             if (!_initialized)
                 return false;
-            
-            try
-            {
-                if (!xslam_reset_slam())
-                    return false;
-                IsMapLoaded = false;
-                SlamReset?.Invoke();
-                return true;
-            }
-            catch (DllNotFoundException)
-            {
+            if (!xslam_reset_slam())
                 return false;
-            }
+            IsMapLoaded = false;
+            SlamReset?.Invoke();
+            return true;
         }
 
         public void Stop()

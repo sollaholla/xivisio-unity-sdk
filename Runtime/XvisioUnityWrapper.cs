@@ -210,11 +210,6 @@ namespace Xvisio.Unity
 
         public Texture2D GetLeftEyeStereoImage()
         {
-            var flip = EstimatedCameraModel switch
-            {
-                XvisioCamera.XR50 or XvisioCamera.DS80 => XvisioImageTransform.InvertVertical,
-            };
-            
             var width = _leftEyeWidth ??= xslam_get_stereo_width();
             var height = _leftEyeHeight ??= xslam_get_stereo_height();
             if (width <= 1 || height <= 1)
@@ -231,7 +226,7 @@ namespace Xvisio.Unity
             var handle = GCHandle.Alloc(_leftEyeImageBuffer, GCHandleType.Pinned);
             try
             {
-                var ok = xslam_get_left_image(handle.AddrOfPinnedObject(), width, height, (int)flip, out _);
+                var ok = xslam_get_left_image(handle.AddrOfPinnedObject(), width, height, 2, out _);
                 if (ok) { _leftEyeStereoImage.LoadRawTextureData(_leftEyeImageBuffer); _leftEyeStereoImage.Apply(false); }
             }
             finally { handle.Free(); }
@@ -240,11 +235,6 @@ namespace Xvisio.Unity
 
         public Texture2D GetRightEyeStereoImage()
         {
-            var flip = EstimatedCameraModel switch
-            {
-                XvisioCamera.XR50 or XvisioCamera.DS80 => XvisioImageTransform.InvertVertical,
-            };
-
             var width = _rightEyeWidth ??= xslam_get_stereo_width();
             var height = _rightEyeHeight ??= xslam_get_stereo_height();
             if (width <= 1 || height <= 1)
@@ -261,7 +251,7 @@ namespace Xvisio.Unity
             var handle = GCHandle.Alloc(_rightEyeImageBuffer, GCHandleType.Pinned);
             try
             {
-                var ok = xslam_get_right_image(handle.AddrOfPinnedObject(), width, height, (int)flip, out _);
+                var ok = xslam_get_right_image(handle.AddrOfPinnedObject(), width, height, 2, out _);
                 if (ok) { _rightEyeStereoImage.LoadRawTextureData(_rightEyeImageBuffer); _rightEyeStereoImage.Apply(false); }
             }
             finally { handle.Free(); }

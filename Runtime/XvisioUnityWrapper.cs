@@ -129,9 +129,7 @@ namespace Xvisio.Unity
         [UnityEditor.Callbacks.DidReloadScripts]
         private static void OnAssemblyReload()
         {
-            if (UnityEngine.Application.platform == RuntimePlatform.OSXEditor)
-                return;
-
+            if (!_initialized) return;
             xslam_uninit();
         }
 #endif
@@ -142,12 +140,13 @@ namespace Xvisio.Unity
         [RuntimeInitializeOnLoadMethod]
         private static void InitOnLoad()
         {
-            if (UnityEngine.Application.platform == RuntimePlatform.OSXEditor)
+            if (Application.platform == RuntimePlatform.OSXEditor)
                 return;
 
             Application.quitting += () =>
             {
-                xslam_uninit();
+                if (_initialized)
+                    xslam_uninit();
             };
         }
 #endif
@@ -158,23 +157,27 @@ namespace Xvisio.Unity
         /// <returns>True if initialization was successful, otherwise false.</returns>
         public async Task<bool> InitializeAsync()
         {
-            if (UnityEngine.Application.platform == RuntimePlatform.OSXEditor)
-                return false;
-
             return await Task.Run(() =>
             {
-                if (_initialized || xslam_init())
+                try
                 {
-                    _initialized = true;
-                    var started = xslam_start_slam();
-                    if (started)
+                    if (_initialized || xslam_init())
                     {
-                        if (xv_device_model(out var model))
-                            EstimatedCameraModel = (XvisioCamera)model;
-                        return true;
+                        _initialized = true;
+                        var started = xslam_start_slam();
+                        if (started)
+                        {
+                            if (xv_device_model(out var model))
+                                EstimatedCameraModel = (XvisioCamera)model;
+                            return true;
+                        }
                     }
+                    return false;
                 }
-                return false;
+                catch (Exception)
+                {
+                    return false;
+                }
             });
         }
 
@@ -184,7 +187,7 @@ namespace Xvisio.Unity
         /// <returns>True if the system is ready, otherwise false.</returns>
         public bool TryUpdate()
         {
-            if (UnityEngine.Application.platform == RuntimePlatform.OSXEditor)
+            if (!_initialized)
                 return false;
             if (!xslam_ready())
                 return false;
@@ -194,10 +197,7 @@ namespace Xvisio.Unity
 
         public bool IsReady()
         {
-            if (UnityEngine.Application.platform == RuntimePlatform.OSXEditor)
-                return false;
-
-            return xslam_ready();
+            return _initialized && xslam_ready();
         }
 
         public Texture2D GetLeftEyeStereoImage()
@@ -349,6 +349,9 @@ namespace Xvisio.Unity
         /// <returns>Whether the load operation has started.</returns>
         public bool LoadMapAndSwitchToCslam(string path)
         {
+            if (!_initialized)
+                return false;
+            
             if (!xslam_ready())
                 return false;
 
@@ -369,21 +372,34 @@ namespace Xvisio.Unity
         /// <returns></returns>
         public bool SaveMapAndSwitchToCslam(string path)
         {
+            if (!_initialized) return false;
             return xslam_ready() && xslam_save_map_and_switch_to_cslam(path);
         }
 
         public bool StartSlam()
         {
+            if (!_initialized)
+                return false;
             return xslam_start_slam();
         }
 
         public bool ResetSlam()
         {
-            if (!xslam_reset_slam())
+            if (!_initialized)
                 return false;
-            IsMapLoaded = false;
-            SlamReset?.Invoke();
-            return true;
+            
+            try
+            {
+                if (!xslam_reset_slam())
+                    return false;
+                IsMapLoaded = false;
+                SlamReset?.Invoke();
+                return true;
+            }
+            catch (DllNotFoundException)
+            {
+                return false;
+            }
         }
 
         public void Stop()

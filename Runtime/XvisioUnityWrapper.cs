@@ -218,7 +218,7 @@ namespace Xvisio.Unity
             var handle = GCHandle.Alloc(_leftEyeImageBuffer, GCHandleType.Pinned);
             try
             {
-                var ok = xslam_get_left_image(handle.AddrOfPinnedObject(), width, height, 2, out _);
+                var ok = xslam_get_left_image(handle.AddrOfPinnedObject(), width, height, 0, out _);
                 if (ok) { _leftEyeStereoImage.LoadRawTextureData(_leftEyeImageBuffer); _leftEyeStereoImage.Apply(false); }
             }
             finally { handle.Free(); }
@@ -243,7 +243,7 @@ namespace Xvisio.Unity
             var handle = GCHandle.Alloc(_rightEyeImageBuffer, GCHandleType.Pinned);
             try
             {
-                var ok = xslam_get_right_image(handle.AddrOfPinnedObject(), width, height, 2, out _);
+                var ok = xslam_get_right_image(handle.AddrOfPinnedObject(), width, height, 0, out _);
                 if (ok) { _rightEyeStereoImage.LoadRawTextureData(_rightEyeImageBuffer); _rightEyeStereoImage.Apply(false); }
             }
             finally { handle.Free(); }

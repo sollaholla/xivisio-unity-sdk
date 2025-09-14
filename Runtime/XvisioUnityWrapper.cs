@@ -210,7 +210,7 @@ namespace Xvisio.Unity
                 _leftEyeImageBuffer = null;
                 _leftEyeWidth = null;
                 _rightEyeWidth = null;
-                return Texture2D.blackTexture;
+                return null;
             }
 
             _leftEyeStereoImage ??= new Texture2D(width, height, TextureFormat.BGRA32, mipChain: false);
@@ -235,7 +235,7 @@ namespace Xvisio.Unity
                 _rightEyeImageBuffer = null;
                 _rightEyeWidth = null;
                 _rightEyeHeight = null;
-                return Texture2D.blackTexture;
+                return null;
             }
             
             _rightEyeStereoImage ??= new Texture2D(width, height, TextureFormat.BGRA32, mipChain: false);
